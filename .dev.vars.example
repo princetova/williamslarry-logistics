@@ -1,0 +1,11 @@
+# Local development ONLY. Copy to .dev.vars, do not commit it.
+RESEND_API_KEY=""
+EMAIL_ENABLED="true"
+EMAIL_TO="info@williamslarrylogistics.com"
+EMAIL_FROM="WilliamsLarry Logistics <enquiries@notify.williamslarrylogistics.com>"
+WHATSAPP_ACCESS_TOKEN=""
+WHATSAPP_PHONE_NUMBER_ID=""
+WHATSAPP_ALERT_TO="2349038704667"
+WHATSAPP_TEMPLATE_NAME="wll_new_enquiry"
+WHATSAPP_TEMPLATE_LANGUAGE="en"
+WHATSAPP_GRAPH_VERSION="v27.0"

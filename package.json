@@ -1,0 +1,10 @@
+{
+  "name": "williamslarry-cloudflare-pages",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev public --kv=ENQUIRY_KV",
+    "deploy": "wrangler pages deploy public --project-name williamslarry-logistics",
+    "test": "node --test tests/*.test.js"
+  }
+}
