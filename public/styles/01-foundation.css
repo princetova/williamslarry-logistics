@@ -1,0 +1,306 @@
+/*
+ * Design tokens, common layout, headers and shared components
+ * Order is intentional. Preserve cascade order when editing these modules.
+ */
+
+/* WilliamsLarry Logistics — V2 client prototype.
+   Brand foundation: electric blue #007BFF, yellow #FFEA00, white #FFFFFF, black #000000.
+   Light-blue accents are blue tints. No navy or dark-blue UI surfaces. */:root {
+  --blue:#007BFF;
+  --yellow:#FFEA00;
+  --white:#FFFFFF;
+  --black:#000000;
+  --ink:#111111;
+  --muted:#696969;
+  --pale:#EDF6FF;
+  --pale2:#DAEDFF;
+  --line:#E6E6E6;
+  --ease:cubic-bezier(.22,1,.36,1)
+}
+* {
+  box-sizing:border-box
+}
+html {
+  scroll-behavior:smooth;
+  scroll-padding-top:110px
+}
+body {
+  margin:0;
+  background:var(--white);
+  color:var(--ink);
+  font-family:"DM Sans",Arial,sans-serif;
+  font-size:15px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased
+}
+button,input,select,textarea {
+  font:inherit
+}
+button {
+  cursor:pointer
+}
+a {
+  text-decoration:none;
+  color:inherit
+}
+img,video {
+  display:block;
+  max-width:100%
+}
+.svg-library {
+  position:absolute;
+  width:0;
+  height:0;
+  overflow:hidden
+}
+.icon {
+  width:20px;
+  height:20px;
+  flex:none;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.75;
+  stroke-linecap:round;
+  stroke-linejoin:round
+}
+.container {
+  width:min(1290px,calc(100% - 100px));
+  margin-inline:auto
+}
+.sr-only {
+  position:absolute;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap
+}
+.progress {
+  position:fixed;
+  top:0;
+  left:0;
+  height:3px;
+  background:var(--yellow);
+  width:0;
+  z-index:1000;
+  box-shadow:0 0 16px var(--yellow)
+}
+:focus-visible {
+  outline:3px solid var(--yellow);
+  outline-offset:3px
+}
+.topbar {
+  background:#000;
+  color:#fff;
+  font:700 9px/1.3 "Manrope",sans-serif;
+  letter-spacing:.14em
+}
+.topbar-inner {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  min-height:37px
+}
+.topbar-inner>span {
+  display:flex;
+  align-items:center;
+  gap:12px
+}
+.topbar-location .icon {
+  width:14px;
+  height:14px;
+  color:var(--yellow)
+}
+.live-dot {
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--yellow);
+  box-shadow:0 0 0 4px rgba(255,234,0,.15);
+  flex:none
+}
+.site-header {
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:rgba(255,255,255,.91);
+  border-bottom:1px solid rgba(0,0,0,.1);
+  backdrop-filter:blur(24px) saturate(150%);
+  -webkit-backdrop-filter:blur(24px) saturate(150%)
+}
+.header-inner {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  height:86px
+}
+.brand {
+  display:inline-flex;
+  align-items:center;
+  gap:11px;
+  flex:none
+}
+.brand img {
+  width:43px;
+  height:43px;
+  object-fit:contain;
+  border-radius:7px
+}
+.brand span {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  line-height:1
+}
+.brand strong {
+  color:var(--blue);
+  font:800 16px/1 "Manrope",Arial,sans-serif;
+  letter-spacing:-.065em
+}
+.brand small {
+  font-size:9px;
+  letter-spacing:.42em;
+  font-weight:800;
+  color:#000
+}
+.main-nav {
+  display:flex;
+  align-items:center;
+  gap:clamp(15px,2.2vw,31px);
+  margin-left:auto
+}
+.nav-link {
+  font:800 11px "Manrope",Arial,sans-serif;
+  letter-spacing:.035em;
+  white-space:nowrap;
+  position:relative;
+  padding:35px 0;
+  transition:color .2s
+}
+.nav-link:hover,.nav-link.active {
+  color:var(--blue)
+}
+.nav-link:after {
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:25px;
+  height:3px;
+  background:var(--yellow);
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .35s var(--ease)
+}
+.nav-link.active:after,.nav-link:hover:after {
+  transform:scaleX(1)
+}
+.header-right {
+  display:flex;
+  align-items:center;
+  gap:10px
+}
+.btn {
+  border:1px solid transparent;
+  border-radius:5px;
+  min-height:51px;
+  padding:0 22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  font:800 11px/1.2 "Manrope",Arial,sans-serif;
+  letter-spacing:.035em;
+  white-space:nowrap;
+  transition:transform .25s var(--ease),background .25s,box-shadow .25s
+}
+.btn:hover {
+  transform:translateY(-3px)
+}
+.btn:active {
+  transform:translateY(0)
+}
+.btn .icon {
+  width:17px;
+  height:17px
+}
+.btn-header {
+  background:#000;
+  color:#fff;
+  min-height:45px;
+  padding:0 16px
+}
+.btn-header:hover,.btn-dark:hover {
+  background:#222
+}
+.btn-yellow {
+  background:var(--yellow);
+  color:#000;
+  box-shadow:0 14px 32px rgba(255,234,0,.18)
+}
+.btn-yellow:hover {
+  background:#FFF23D;
+  box-shadow:0 16px 36px rgba(255,234,0,.28)
+}
+.btn-blue {
+  background:var(--blue);
+  color:#fff
+}
+.btn-blue:hover {
+  background:#1689FF;
+  box-shadow:0 12px 28px rgba(0,123,255,.22)
+}
+.btn-dark {
+  background:#000;
+  color:#fff
+}
+.btn-outline {
+  background:#fff;
+  color:#000;
+  border-color:#d5d5d5
+}
+.btn-line {
+  color:#fff;
+  border-color:rgba(255,255,255,.32);
+  background:rgba(255,255,255,.06);
+  backdrop-filter:blur(20px)
+}
+.btn-line:hover {
+  background:rgba(255,255,255,.16)
+}
+.menu-toggle,.nav-mobile-cta {
+  display:none
+}
+.eyebrow {
+  display:block;
+  font:800 10px/1.6 "Manrope",sans-serif;
+  letter-spacing:.2em;
+  color:var(--blue);
+  margin-bottom:20px
+}
+.eyebrow-on-blue {
+  color:#fff
+}
+.eyebrow.tiny {
+  font-size:9px;
+  margin-bottom:10px
+}
+h1,h2,h3,p {
+  margin-top:0
+}
+h1,h2,h3 {
+  font-family:"Manrope",Arial,sans-serif;
+  letter-spacing:-.06em
+}
+h1 {
+  font-weight:800
+}
+h2 {
+  font-weight:800
+}
+h1 em,h2 em {
+  font-style:normal
+}

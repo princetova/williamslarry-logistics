@@ -1,0 +1,103 @@
+/*
+ * Service image cards (V2.5)
+ * The only intentional visual change in this release.
+ * All existing text, service IDs, quote data attributes, and actions are preserved.
+ */
+.offerings-grid .offering-card {
+  padding: 0;
+  border-radius: 15px;
+  min-height: 475px;
+  overflow: hidden;
+}
+
+.offering-media {
+  display: block;
+  width: 100%;
+  height: 190px;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+  background: #e7f4ff;
+}
+
+.offering-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 62%, rgba(0, 0, 0, .12) 100%);
+}
+
+.offering-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform .8s cubic-bezier(.22, 1, .36, 1);
+  transform: scale(1);
+}
+
+/* Gently zoom the image, not the copy. Works with mouse and keyboard focus. */
+.offerings-grid .offering-card:is(:hover, :focus-within) .offering-media img {
+  transform: scale(1.065);
+}
+
+.offerings-grid .offering-head {
+  padding: 20px 23px 0;
+}
+
+.offerings-grid .offering-icon {
+  position: absolute;
+  z-index: 3;
+  top: 155px;
+  right: 20px;
+  width: 55px;
+  height: 55px;
+  margin: 0;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .10);
+  background: #edf6ff;
+  border-color: rgba(0, 123, 255, .25);
+}
+
+.offerings-grid .offering-card h3 {
+  margin: 18px 23px 9px;
+}
+
+.offerings-grid .offering-card p {
+  margin: 0 23px 24px;
+}
+
+.offerings-grid .offering-card .offering-action {
+  margin: auto 23px 23px;
+}
+
+/* The highlighted regional card keeps its previously approved electric-blue style. */
+.offerings-grid .offering-card:nth-child(3) .offering-icon {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+.offerings-grid .offering-card:nth-child(3) .offering-icon .icon {
+  color: #007bff;
+}
+
+@media (max-width: 740px) {
+  .offerings-grid .offering-card { min-height: 460px; }
+  .offering-media { height: 172px; }
+  .offerings-grid .offering-icon { top: 137px; }
+}
+
+@media (max-width: 530px) {
+  .offerings-grid .offering-card { min-height: 430px; }
+  .offering-media { height: 185px; }
+  .offerings-grid .offering-icon { top: 150px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offering-media img,
+  .offerings-grid .offering-card:is(:hover, :focus-within) .offering-media img {
+    transform: none;
+    transition: none;
+  }
+}

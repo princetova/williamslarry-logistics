@@ -1,0 +1,439 @@
+/*
+ * Six service cards, enquiry layouts and contact orbit effects
+ * Order is intentional. Preserve cascade order when editing these modules.
+ */
+
+/* V2.3 — Brand-approved services, contact channels and precise delivery enquiry fields. */.offering-card,.footer-contact-strip,.contact-card-stack .contact-method {
+  isolation:isolate
+}
+.offerings-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px
+}
+.offering-card {
+  min-height:360px;
+  border:1px solid #dfebf7;
+  background:linear-gradient(155deg,#fff 40%,#f1f8ff);
+  padding:26px 24px 25px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  position:relative;
+  overflow:hidden;
+  transition:transform .34s var(--ease),border-color .34s,box-shadow .34s
+}
+.offering-card:before {
+  content:"";
+  position:absolute;
+  inset:auto -40px -170px auto;
+  width:270px;
+  height:270px;
+  background:radial-gradient(circle,rgba(0,123,255,.08),transparent 65%);
+  pointer-events:none
+}
+.offering-card:hover {
+  transform:translateY(-5px);
+  border-color:rgba(0,123,255,.52);
+  box-shadow:0 22px 55px rgba(0,123,255,.08)
+}
+.offering-card:nth-child(2),.offering-card:nth-child(5) {
+  background:#f4f9ff
+}
+.offering-card:nth-child(3) {
+  background:var(--blue);
+  color:white;
+  border-color:var(--blue)
+}
+.offering-card:nth-child(3) p {
+  color:rgba(255,255,255,.87)
+}
+.offering-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  font:800 10px "Manrope",sans-serif;
+  letter-spacing:.12em;
+  color:var(--blue)
+}
+.offering-head .icon {
+  width:18px;
+  height:18px
+}
+.offering-card:nth-child(3) .offering-head {
+  color:#fff
+}
+.offering-icon {
+  height:65px;
+  width:65px;
+  margin:29px 0 21px;
+  background:rgba(0,123,255,.07);
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  border:1px solid rgba(0,123,255,.18)
+}
+.offering-icon .icon {
+  height:30px;
+  width:30px;
+  color:var(--blue)
+}
+.offering-card:nth-child(3) .offering-icon {
+  background:rgba(255,255,255,.15);
+  border-color:rgba(255,255,255,.4)
+}
+.offering-card:nth-child(3) .offering-icon .icon {
+  color:white
+}
+.offering-card h3 {
+  margin:0 0 10px;
+  font:800 clamp(20px,2.1vw,27px)/1.18 "Manrope",sans-serif;
+  letter-spacing:-.05em
+}
+.offering-card p {
+  font-size:13px;
+  color:#6d747c;
+  line-height:1.7;
+  margin:0 0 27px
+}
+.offering-action {
+  margin-top:auto;
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  padding:0 0 8px;
+  background:transparent;
+  border:0;
+  border-bottom:2px solid var(--yellow);
+  font:800 9px "Manrope",sans-serif;
+  letter-spacing:.085em;
+  text-align:left;
+  color:inherit
+}
+.offering-action .icon {
+  width:16px;
+  height:16px;
+  color:var(--blue)
+}
+.offering-card:nth-child(3) .offering-action .icon {
+  color:var(--yellow)
+}
+.routes-notice {
+  display:flex;
+  align-items:center;
+  gap:21px;
+  margin-top:18px;
+  padding:24px 25px;
+  background:#000;
+  color:#fff
+}
+.routes-marker {
+  font:800 37px "Manrope",sans-serif;
+  color:var(--yellow)
+}
+.routes-notice p {
+  font-size:13px;
+  color:#d9d9d9;
+  line-height:1.6;
+  flex:1;
+  margin:0
+}
+.routes-notice p strong {
+  color:#fff
+}
+.routes-notice button {
+  border:1px solid rgba(255,255,255,.4);
+  background:transparent;
+  color:white;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 17px;
+  font:800 10px "Manrope",sans-serif;
+  letter-spacing:.07em;
+  white-space:nowrap
+}
+.routes-notice button:hover {
+  background:var(--yellow);
+  border-color:var(--yellow);
+  color:#000
+}
+.routes-notice button .icon {
+  width:17px;
+  height:17px
+}
+.contact-location {
+  display:flex;
+  align-items:center;
+  gap:15px;
+  margin:22px 0 18px;
+  padding:14px 0;
+  border-block:1px solid #e6edf5
+}
+.contact-location>.icon {
+  width:26px;
+  height:26px;
+  color:var(--blue)
+}
+.contact-location>span {
+  display:flex;
+  flex-direction:column;
+  gap:2px
+}
+.contact-location b {
+  font:800 9px "Manrope",sans-serif;
+  letter-spacing:.14em;
+  color:#777
+}
+.contact-location strong {
+  font-size:16px
+}
+.contact-card-stack {
+  display:grid;
+  gap:9px
+}
+.contact-method {
+  display:flex;
+  gap:16px;
+  align-items:center;
+  position:relative;
+  text-decoration:none;
+  min-width:0
+}
+.contact-method-arrow {
+  width:16px;
+  height:16px;
+  margin-left:auto;
+  flex:none;
+  color:var(--blue);
+  transition:transform .25s
+}
+.contact-method:hover .contact-method-arrow,.contact-method:focus-visible .contact-method-arrow {
+  transform:translate(3px,-3px)
+}
+.contact-icon-orbit {
+  display:grid;
+  place-items:center;
+  width:55px;
+  height:55px;
+  flex:none;
+  position:relative
+}
+.contact-icon-orbit:before {
+  content:"";
+  inset:1px;
+  position:absolute;
+  border:2px dotted var(--blue);
+  border-radius:50%;
+  opacity:.75;
+  transform:rotate(0deg)
+}
+.contact-icon-core {
+  display:grid;
+  place-items:center;
+  width:39px;
+  height:39px;
+  border-radius:50%;
+  background:#eaf4ff;
+  position:relative;
+  z-index:1;
+  color:var(--blue)
+}
+.contact-icon-core .icon {
+  width:21px;
+  height:21px;
+  stroke-width:1.7
+}
+.contact-method:hover .contact-icon-orbit:before,.contact-method:focus-visible .contact-icon-orbit:before {
+  animation:contactOrbit 10s linear infinite;
+  border-color:var(--yellow)
+}
+@keyframes contactOrbit {
+  to {
+    transform:rotate(360deg)
+  }
+
+}
+.contact-method-body {
+  display:flex;
+  min-width:0;
+  flex:1;
+  flex-direction:column;
+  gap:5px
+}
+.contact-method-label {
+  font:800 10px "Manrope",sans-serif;
+  letter-spacing:.1em;
+  color:var(--blue)
+}
+.contact-method-body strong {
+  font:800 13px "Manrope",sans-serif;
+  overflow-wrap:anywhere;
+  letter-spacing:-.02em;
+  line-height:1.4
+}
+.contact-card-stack .contact-method {
+  padding:14px 13px;
+  border:1px solid #e0e9f0;
+  background:#fbfdff;
+  transition:border-color .25s,background .25s
+}
+.contact-card-stack .contact-method:hover,.contact-card-stack .contact-method:focus-visible {
+  background:#f2f8ff;
+  border-color:var(--blue)
+}
+.footer-contact-strip {
+  border:1px solid #343434;
+  background:#090909;
+  display:grid;
+  grid-template-columns:.78fr 2.3fr;
+  gap:19px;
+  padding:27px 28px;
+  margin-top:46px
+}
+.footer-contact-heading {
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:11px;
+  padding-right:23px;
+  border-right:1px solid #303030
+}
+.footer-contact-heading>span {
+  color:var(--blue);
+  font:800 9px "Manrope",sans-serif;
+  letter-spacing:.14em
+}
+.footer-contact-heading strong {
+  color:white;
+  font:800 24px "Manrope",sans-serif;
+  letter-spacing:-.06em
+}
+.footer-contact-items {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px
+}
+.footer-contact-items .contact-method {
+  padding:9px 5px;
+  color:white;
+  gap:11px
+}
+.footer-contact-items .contact-icon-orbit {
+  width:51px;
+  height:51px
+}
+.footer-contact-items .contact-icon-core {
+  width:36px;
+  height:36px;
+  background:#12212a
+}
+.footer-contact-items .contact-method-label {
+  font-size:9px;
+  color:var(--yellow)
+}
+.footer-contact-items .contact-method-body strong {
+  font-size:12px;
+  color:white
+}
+.footer-contact-items .contact-method-arrow {
+  display:none
+}
+.contact-form-box .form-intro {
+  color:#666;
+  font-size:13px;
+  line-height:1.7;
+  margin:0 0 17px
+}
+.form-grid .form-span {
+  grid-column:1/-1
+}
+.form-optional {
+  font-weight:500;
+  color:#777;
+  font-size:11px
+}
+.quote-dialog .dialog-inner {
+  max-height:calc(100dvh - 55px);
+  overflow-y:auto
+}
+.quote-dialog form textarea {
+  min-height:72px
+}
+@media(max-width:1050px) {
+  .offerings-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+  .footer-contact-strip {
+    grid-template-columns:1fr
+  }
+  .footer-contact-heading {
+    border-right:0;
+    border-bottom:1px solid #303030;
+    padding:0 0 19px
+  }
+  .footer-contact-items {
+    grid-template-columns:repeat(3,minmax(0,1fr))
+  }
+
+}
+@media(max-width:740px) {
+  .offerings-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px
+  }
+  .offering-card {
+    padding:20px;
+    min-height:365px
+  }
+  .offering-icon {
+    margin:21px 0 18px
+  }
+  .routes-notice {
+    flex-wrap:wrap;
+    padding:23px 20px
+  }
+  .routes-notice button {
+    width:100%;
+    justify-content:center
+  }
+  .footer-contact-items {
+    grid-template-columns:1fr
+  }
+  .footer-contact-strip {
+    margin-top:27px;
+    padding:18px
+  }
+  .footer-contact-items .contact-method {
+    padding:8px 0
+  }
+
+}
+@media(max-width:530px) {
+  .offerings-grid {
+    grid-template-columns:1fr
+  }
+  .offering-card {
+    min-height:290px;
+    padding:23px 22px
+  }
+  .offering-icon {
+    width:55px;
+    height:55px;
+    margin:21px 0 16px
+  }
+  .offering-card p {
+    margin-bottom:22px
+  }
+  .routes-marker {
+    display:none
+  }
+
+}
+@media(prefers-reduced-motion:reduce) {
+  .contact-method:hover .contact-icon-orbit:before,.contact-method:focus-visible .contact-icon-orbit:before {
+    animation:none
+  }
+
+}

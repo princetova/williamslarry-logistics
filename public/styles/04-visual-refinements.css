@@ -1,0 +1,74 @@
+/*
+ * Motion safeguards, black palette fixes and existing video treatments
+ * Order is intentional. Preserve cascade order when editing these modules.
+ */
+
+/* Robust progressive reveal: content stays legible even when an observer is unavailable. */.reveal {
+  opacity:1;
+  transform:none
+}
+.reveal.is-visible {
+  animation:riseIn .72s var(--ease) both
+}
+@keyframes riseIn {
+  from {
+    opacity:.55;
+    transform:translateY(22px)
+  }
+  to {
+    opacity:1;
+    transform:translateY(0)
+  }
+
+}
+/* Keep diagonal ticker and media flourishes within the viewport. */html,body {
+  overflow-x:clip
+}
+@media(min-width:971px) {
+  .motion-mini {
+    width:50%;
+    right:-22px
+  }
+  .photo-bottom {
+    font-size:clamp(18px,2vw,29px)
+  }
+
+}
+@media(prefers-reduced-motion:reduce) {
+  .reveal.is-visible {
+    animation:none
+  }
+
+}
+/* Client review: avoid navy-looking background gradients; black remains flat black. */.hero-halo,.closing-section::before {
+  display:none
+}
+.hero-image-frame {
+  box-shadow:0 0 0 1px rgba(0,123,255,.22),0 20px 65px rgba(0,0,0,.34)
+}
+/* Preserve the original blue logo against the blue About masthead. */.page-hero-mark img {
+  border:6px solid #fff;
+  background:#fff
+}
+/* Behind every delivery: same feathering for the edited, shortened video. */.service-video-band .service-video-card  {
+
+    background: #000;
+
+    border: 0;
+
+    border-radius: 0;
+
+    overflow: visible;
+
+}
+.service-video-band .service-video-card video  {
+
+    width: 100%;
+   height: 100%;
+   object-fit: contain;
+
+    -webkit-mask-image: radial-gradient(ellipse closest-side at center, #000 51%, rgba(0,0,0,.98) 66%, rgba(0,0,0,.52) 86%, transparent 100%);
+
+    mask-image: radial-gradient(ellipse closest-side at center, #000 51%, rgba(0,0,0,.98) 66%, rgba(0,0,0,.52) 86%, transparent 100%);
+
+}
