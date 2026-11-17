@@ -14,7 +14,11 @@ const FIELD_LIMITS = Object.freeze({
 const VALID_SERVICES = new Set([
   '', 'Payment on Delivery / E-commerce', 'Haulage of large goods',
   'Waybill services / Regional routes', 'Warehousing',
-  'Waybill pickup and delivery', 'Nationwide house relocation', 'Other / Not sure',
+  'Waybill pickup and delivery', 'Nationwide house relocation',
+  'Express delivery (availability to confirm)',
+  'Same-day delivery (availability to confirm)',
+  'Economy delivery (availability to confirm)',
+  'Other / Not sure',
 ]);
 const REQUIRED = ['sender','sender_phone','pickup','receiver','receiver_phone','destination','items'];
 const encoder = new TextEncoder();

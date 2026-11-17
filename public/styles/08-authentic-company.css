@@ -1,0 +1,78 @@
+/*
+ * WilliamsLarry Logistics – authentic operations images and service clarity.
+ * Additive refinements only: homepage hero and team strip, Services, About.
+ * All existing layout, brand colors, animations and enquiries remain intact.
+ */
+.home-hero-media .hero-image-frame > img { object-position: 49% 43%; }
+/* Give visitors immediate visual evidence of the real local team. */
+.real-team-band { background: #fff; padding: clamp(48px,6vw,88px) 0; }
+.real-team-layout { display: grid; grid-template-columns: .78fr 1.22fr; gap: clamp(30px,5vw,76px); align-items:center; }
+.real-team-copy h2,.actual-operations-heading h2 { font:800 clamp(30px,3.7vw,59px)/1.09 'Manrope',sans-serif; letter-spacing:-.06em; margin:16px 0 20px; }
+.real-team-copy h2 span,.actual-operations-heading h2 span { color:#007bff; }
+.real-team-copy p,.actual-operations-heading p { color:#576477; max-width:420px; line-height:1.75; }
+.real-team-link { display:inline-flex; align-items:center; gap:15px; margin-top:16px; padding:0 0 9px; border-bottom:2px solid #ffea00; text-decoration:none; color:#111; font:800 11px 'Manrope',sans-serif; letter-spacing:.12em; }
+.real-team-link .icon { width:18px; height:18px; color:#007bff; }
+.real-team-photos { display:grid; grid-template-columns:1.2fr .8fr; gap:12px; }
+.real-team-photos figure,.actual-operations-grid figure { margin:0; position:relative; overflow:hidden; background:#dcefff; border-radius:12px; }
+.real-team-photos figure { height:360px; }
+.real-team-photos img,.actual-operations-grid img { display:block; width:100%; height:100%; object-fit:cover; transition:transform .7s cubic-bezier(.22,1,.36,1); }
+.real-team-photos figure:first-child img { object-position:50% 35%; }
+.real-team-photos figure:last-child img { object-position:56% 50%; }
+.real-team-photos figure:is(:hover,:focus-within) img,.actual-operations-grid figure:is(:hover,:focus-within) img { transform:scale(1.045); }
+.real-team-photos figcaption,.actual-operations-grid figcaption { position:absolute; bottom:0; left:0; right:0; padding:34px 17px 16px; color:#fff; background:linear-gradient(transparent,rgba(0,0,0,.67)); font:800 10px 'Manrope',sans-serif; letter-spacing:.12em; }
+/* Service card image treatments: preserve layout and only soften imagery motion. */
+.offerings-grid .offering-card { min-height:530px; }
+.offerings-grid .offering-card .offering-benefits { list-style:none; margin: -6px 23px 23px; padding:0; display:grid; gap:8px; }
+.offering-benefits li { display:flex; align-items:flex-start; gap:9px; font:600 12px/1.5 'DM Sans',sans-serif; color:#40556a; }
+.offering-benefits li:before { content:'✓'; font-weight:800; color:#007bff; flex:none; }
+.offerings-grid .offering-card:nth-child(3) .offering-benefits li { color:#fff; }
+.offerings-grid .offering-card:nth-child(3) .offering-benefits li:before { color:#ffea00; }
+.offering-media .image-disclaimer { position:absolute; top:11px; left:11px; z-index:3; border-radius:3px; padding:6px 8px; color:#172a41; background:rgba(255,255,255,.92); font:800 9px 'Manrope',sans-serif; letter-spacing:.11em; }
+.offerings-grid #pay-on-delivery .offering-media img { object-position:50% 10%; }
+.offerings-grid #waybill .offering-media img { object-position:50% 50%; }
+.offerings-grid #pickup-delivery .offering-media img { object-position:50% 19%; }
+/* Delivery-speed categories are enquiries, never guaranteed services. */
+.delivery-options { margin-top: clamp(48px,6vw,84px); }
+.delivery-options-header { display:flex; justify-content:space-between; gap:32px; align-items:end; margin-bottom:25px; }
+.delivery-options-header h3 { font:800 clamp(23px,3vw,38px)/1.2 'Manrope',sans-serif; letter-spacing:-.05em; max-width:510px; margin:12px 0 0; }
+.delivery-options-header > p { max-width:410px; font-size:14px; line-height:1.7; color:#596577; margin:0; }
+.delivery-option-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.delivery-option { min-height:235px; background:#f3f8fe; border:1px solid #d6e9ff; border-radius:12px; padding:24px; display:flex; flex-direction:column; transition:border-color .3s,transform .3s; }
+.delivery-option:hover { transform:translateY(-3px); border-color:#007bff; }
+.delivery-option-num { font:800 10px 'Manrope',sans-serif; letter-spacing:.13em; color:#007bff; }
+.delivery-option h4 { font:800 20px 'Manrope',sans-serif; letter-spacing:-.04em; margin:20px 0 8px; }
+.delivery-option p { color:#56677b; font:400 13px/1.65 'DM Sans',sans-serif; margin:0 0 20px; }
+.delivery-option button { margin-top:auto; border:none; border-bottom:2px solid #ffea00; padding:7px 0; align-self:flex-start; background:transparent; color:#111; cursor:pointer; font:800 10px 'Manrope',sans-serif; letter-spacing:.08em; text-align:left; }
+.delivery-option button span { color:#007bff; margin-left:8px; font-size:15px; }
+/* About: photographic evidence without fabricated office address or fleet metrics. */
+.actual-operations-section { background:#f4f9ff; }
+.actual-operations-heading { display:flex; flex-wrap:wrap; align-items:end; column-gap:40px; justify-content:space-between; margin-bottom:24px; }
+.actual-operations-heading .eyebrow { width:100%; }
+.actual-operations-heading h2 { margin-bottom:0; }
+.actual-operations-heading p { margin:10px 0 0; }
+.actual-operations-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.actual-operations-grid figure { height:380px; }
+.actual-operations-grid img { object-position:50% 36%; }
+@media (max-width:960px) {
+  .real-team-layout { grid-template-columns:1fr; }
+  .real-team-photos figure { height:320px; }
+  .actual-operations-grid figure { height:320px; }
+}
+@media (max-width:740px) {
+  .delivery-options-header { display:block; }
+  .delivery-options-header > p { margin-top:14px; }
+  .delivery-option-grid { grid-template-columns:1fr; }
+  .delivery-option { min-height:205px; }
+  .actual-operations-grid { grid-template-columns:1fr 1fr; }
+  .actual-operations-grid figure:last-child { grid-column:span 2; height:240px; }
+  .offerings-grid .offering-card { min-height:520px; }
+}
+@media (max-width:530px) {
+  .real-team-photos figure { height:230px; }
+  .actual-operations-grid figure { height:250px; }
+  .actual-operations-grid figure:last-child { height:220px; }
+  .offerings-grid .offering-card { min-height:490px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .real-team-photos img,.actual-operations-grid img,.delivery-option { transition:none; transform:none !important; }
+}

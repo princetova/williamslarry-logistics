@@ -102,3 +102,18 @@ test('does not report success if provider rejects notification',async()=>{
 test('only POST is accepted',async()=>{
   assert.equal((await onRequest()).status,405);
 });
+
+// Client-requested delivery urgency options should reach the enquiry API safely.
+test('recognizes the new delivery-speed enquiry categories', async () => {
+  for (const service of [
+    'Express delivery (availability to confirm)',
+    'Same-day delivery (availability to confirm)',
+    'Economy delivery (availability to confirm)',
+  ]) {
+    const res = await onRequestPost(context({...good, service}));
+    // Valid submission: with no providers set, it fails closed at availability, not validation.
+    assert.equal(res.status, 503, service);
+    const body = await payload(res);
+    assert.match(body.message, /contact us/i);
+  }
+});
