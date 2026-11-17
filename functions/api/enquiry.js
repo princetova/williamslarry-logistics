@@ -77,25 +77,46 @@ function emailBody(fields, ref) {
     'Please confirm coverage, availability and pricing before accepting any delivery.',
   ].join('\n');
 }
+// Log only allowlisted error categories; provider messages can contain private data.
+function emailFailureCategory(body) {
+  const msg = typeof body?.message === 'string' ? body.message : '';
+  const name = typeof body?.name === 'string' ? body.name : '';
+  if (/api.?key|authorization header|bearer|access token/i.test(msg) || ['missing_api_key','restricted_api_key','suspended_api_key','invalid_permission'].includes(name)) return 'api_key_or_permission';
+  if (/domain.*(?:verif|not found)|verif.*domain/i.test(msg)) return 'sending_domain';
+  if (/(?:\bfrom\b|sender|sending address)/i.test(msg)) return 'sender_address';
+  if (/(?:\bto\b|recipient|reply.to)/i.test(msg)) return 'recipient_or_address';
+  if (/subject|html|text|body|missing|required|payload/i.test(msg)) return 'request_fields';
+  if (name === 'validation_error') return 'other_validation_error';
+  if (['daily_quota_exceeded','monthly_quota_exceeded','rate_limit_exceeded'].includes(name)) return 'quota_or_rate_limit';
+  return 'unclassified_provider_response';
+}
 async function sendEmail(env, fields, ref) {
   if (String(env.EMAIL_ENABLED ?? 'true').toLowerCase() === 'false' ||
       !env.RESEND_API_KEY || !env.EMAIL_TO || !env.EMAIL_FROM) return 'not_configured';
+  // Dashboard inputs may contain pasted line breaks or trailing spaces.
+  const apiKey = String(env.RESEND_API_KEY).trim();
+  const from = String(env.EMAIL_FROM).trim().replace(/[\t\r\n]+/g, ' ');
+  const to = String(env.EMAIL_TO).trim();
+  if (!/^re_[A-Za-z0-9_-]+$/.test(apiKey)) {
+    console.error('WilliamsLarry email configuration: malformed API key (expected raw re_ token)');
+    return 'failed';
+  }
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'content-type':'application/json',
-        'authorization':`Bearer ${env.RESEND_API_KEY}`,
+        'authorization':`Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: env.EMAIL_FROM, to: [env.EMAIL_TO],
+        from, to: [to],
         subject: `New delivery enquiry [${ref}] | WilliamsLarry Logistics`,
         text: emailBody(fields, ref),
       }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body.id) {
-      console.error('WilliamsLarry email provider returned status', response.status);
+      console.error('WilliamsLarry email provider returned status', response.status, emailFailureCategory(body));
       return 'failed';
     }
     return 'accepted';

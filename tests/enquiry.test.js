@@ -48,7 +48,7 @@ test('fails closed when neither sender service is configured',async()=>{
 });
 test('delivers via email, deduplicates and retains reference',async()=>{
   const ctx=context(good, {
-    RESEND_API_KEY:'test',EMAIL_TO:'info@williamslarrylogistics.com',
+    RESEND_API_KEY:'re_test',EMAIL_TO:'info@williamslarrylogistics.com',
     EMAIL_FROM:'WilliamsLarry <enquiries@notify.williamslarrylogistics.com>',
   });
   const realFetch=globalThis.fetch;
@@ -94,7 +94,7 @@ test('does not report success if provider rejects notification',async()=>{
   const realFetch=globalThis.fetch;
   globalThis.fetch=async()=>new Response(JSON.stringify({error:'Rejected'}),{status:403});
   try {
-    const res=await onRequestPost(context(good,{RESEND_API_KEY:'test',EMAIL_TO:'info@williamslarrylogistics.com',EMAIL_FROM:'enquiries@notify.williamslarrylogistics.com'}));
+    const res=await onRequestPost(context(good,{RESEND_API_KEY:'re_test',EMAIL_TO:'info@williamslarrylogistics.com',EMAIL_FROM:'enquiries@notify.williamslarrylogistics.com'}));
     assert.equal(res.status,502);
     assert.equal((await payload(res)).ok,false);
   } finally {globalThis.fetch=realFetch;}
@@ -126,7 +126,7 @@ test('rejects populated legacy and current form guards without false success or 
   try {
     for (const guard of ['company_website', 'wll_guard_7f']) {
       const result = await onRequestPost(context({...good, [guard]:'autofill.example'}, {
-        RESEND_API_KEY:'test', EMAIL_TO:'info@williamslarrylogistics.com',
+        RESEND_API_KEY:'re_test', EMAIL_TO:'info@williamslarrylogistics.com',
         EMAIL_FROM:'enquiries@notify.williamslarrylogistics.com',
       }));
       assert.equal(result.status, 422);
@@ -141,7 +141,7 @@ test('normal quote with blank guard reaches email provider and returns reference
   globalThis.fetch = async () => { calls++; return new Response(JSON.stringify({id:'mock-id'})); };
   try {
     const result = await onRequestPost(context({...good, source:'quote', wll_guard_7f:''}, {
-      RESEND_API_KEY:'test', EMAIL_ENABLED:'true', EMAIL_TO:'info@williamslarrylogistics.com',
+      RESEND_API_KEY:'re_test', EMAIL_ENABLED:'true', EMAIL_TO:'info@williamslarrylogistics.com',
       EMAIL_FROM:'WilliamsLarry Logistics <enquiries@notify.williamslarrylogistics.com>',
     }));
     assert.equal(result.status, 200);
@@ -150,4 +150,58 @@ test('normal quote with blank guard reaches email provider and returns reference
     assert.equal(p.channels.email, 'accepted');
     assert.equal(calls, 1);
   } finally { globalThis.fetch = realFetch; }
+});
+
+
+test('normalizes copied email configuration before sending', async () => {
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (url, opts) => {
+    calls++;
+    assert.equal(opts.headers.authorization, 'Bearer re_test');
+    const data = JSON.parse(opts.body);
+    assert.equal(data.from, 'WilliamsLarry Logistics <enquiries@notify.williamslarrylogistics.com>');
+    assert.deepEqual(data.to, ['info@williamslarrylogistics.com']);
+    return new Response(JSON.stringify({id:'mock-id'}));
+  };
+  try {
+    const result = await onRequestPost(context(good, {
+      RESEND_API_KEY:' re_test\n', EMAIL_TO:' info@williamslarrylogistics.com ',
+      EMAIL_FROM:'WilliamsLarry Logistics\n<enquiries@notify.williamslarrylogistics.com>',
+    }));
+    assert.equal(result.status, 200);
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = realFetch; }
+});
+test('rejects a pasted Bearer prefix without leaking credentials or calling Resend', async () => {
+  const realFetch = globalThis.fetch, realError = console.error;
+  let calls=0; const logs=[];
+  globalThis.fetch = async () => { calls++; throw new Error('unexpected'); };
+  console.error = (...args) => logs.push(args.join(' '));
+  try {
+    const result = await onRequestPost(context(good, {
+      RESEND_API_KEY:'Bearer re_testsecret', EMAIL_TO:'info@williamslarrylogistics.com',
+      EMAIL_FROM:'enquiries@notify.williamslarrylogistics.com',
+    }));
+    assert.equal(result.status,502);
+    assert.equal(calls,0);
+    assert.match(logs.join(' '),/malformed API key/);
+    assert.doesNotMatch(logs.join(' '),/re_testsecret/);
+  } finally {globalThis.fetch=realFetch; console.error=realError;}
+});
+test('logs safe provider failure category without exposing provider text or customer details', async () => {
+  const realFetch = globalThis.fetch, realError = console.error;
+  const logs=[];
+  globalThis.fetch = async () => new Response(JSON.stringify({name:'validation_error',message:'Invalid from address: private@example.com'}),{status:400});
+  console.error = (...args) => logs.push(args.join(' '));
+  try {
+    const result = await onRequestPost(context(good, {
+      RESEND_API_KEY:'re_test', EMAIL_TO:'info@williamslarrylogistics.com',
+      EMAIL_FROM:'enquiries@notify.williamslarrylogistics.com',
+    }));
+    assert.equal(result.status,502);
+    assert.match(logs.join(' '),/400 sender_address/);
+    assert.doesNotMatch(logs.join(' '),/private@example.com/);
+    assert.doesNotMatch(await result.text(),/private@example.com/);
+  } finally {globalThis.fetch=realFetch; console.error=realError;}
 });
