@@ -187,7 +187,13 @@ export async function onRequestPost({request, env}) {
   } catch { return error(400, 'Your request could not be read.'); }
   let data;
   try { data = JSON.parse(raw); } catch { return error(400, 'Your request could not be read.'); }
-  if (data?.company_website) return json(200, {ok:true,message:'Your enquiry has been submitted.'});
+  // A browser/password manager can autofill a legacy honeypot. Never report
+  // success for a discarded request. Accept both guard names during rollout.
+  if ([data?.company_website, data?.wll_guard_7f].some(value =>
+    value != null && (typeof value !== 'string' || value.trim() !== ''))) {
+    console.warn('WilliamsLarry enquiry blocked by form guard');
+    return error(422, 'Your enquiry could not be submitted. Please refresh the page and enter the details again. If this continues, contact us directly on WhatsApp.');
+  }
 
   let fields;
   try { fields = cleanFields(data); }

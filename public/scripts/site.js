@@ -103,7 +103,13 @@
       if (!response.ok || !payload || payload.ok !== true) {
         throw new Error(payload?.message || 'Your enquiry could not be submitted. Please try again or contact us on WhatsApp.');
       }
-      message.textContent = payload.message || 'Your enquiry was submitted for notification delivery.';
+      // Success requires a real reference and at least one provider acceptance.
+      // This also protects users against stale endpoints returning generic OK.
+      if (typeof payload.reference !== 'string' || !/^WL-[A-F0-9]{10}$/.test(payload.reference) ||
+          (payload.channels?.email !== 'accepted' && payload.channels?.whatsapp !== 'accepted')) {
+        throw new Error('Notification delivery could not be confirmed. Please contact us directly or copy your enquiry details.');
+      }
+      message.textContent = `${payload.message || 'Your enquiry was accepted for notification delivery.'} Reference: ${payload.reference}`;
     } catch (error) {
       message.classList.remove('result-success');
       message.classList.add('result-error');

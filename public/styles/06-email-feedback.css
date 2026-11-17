@@ -3,7 +3,7 @@
  * Order is intentional. Preserve cascade order when editing these modules.
  */
 
-/* Enquiry email phase: accessible error notices, submit lock and silent spam trap. */.form-honeypot {
+/* Enquiry email phase: accessible error notices, submit lock and hidden spam trap. */.form-honeypot {
   position:absolute!important;
   width:1px!important;
   height:1px!important;
@@ -26,3 +26,6 @@
   opacity:.65;
   cursor:progress
 }
+
+/* Prevent global label layout rules from overriding the hidden form guard. */
+.form-honeypot[hidden] { display:none!important; }

@@ -117,3 +117,37 @@ test('recognizes the new delivery-speed enquiry categories', async () => {
     assert.match(body.message, /contact us/i);
   }
 });
+
+// Regression: autofilled spam traps may not report successful delivery.
+test('rejects populated legacy and current form guards without false success or provider calls', async () => {
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw new Error('must not send'); };
+  try {
+    for (const guard of ['company_website', 'wll_guard_7f']) {
+      const result = await onRequestPost(context({...good, [guard]:'autofill.example'}, {
+        RESEND_API_KEY:'test', EMAIL_TO:'info@williamslarrylogistics.com',
+        EMAIL_FROM:'enquiries@notify.williamslarrylogistics.com',
+      }));
+      assert.equal(result.status, 422);
+      assert.equal((await payload(result)).ok, false);
+    }
+    assert.equal(calls, 0);
+  } finally { globalThis.fetch = realFetch; }
+});
+test('normal quote with blank guard reaches email provider and returns reference', async () => {
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return new Response(JSON.stringify({id:'mock-id'})); };
+  try {
+    const result = await onRequestPost(context({...good, source:'quote', wll_guard_7f:''}, {
+      RESEND_API_KEY:'test', EMAIL_ENABLED:'true', EMAIL_TO:'info@williamslarrylogistics.com',
+      EMAIL_FROM:'WilliamsLarry Logistics <enquiries@notify.williamslarrylogistics.com>',
+    }));
+    assert.equal(result.status, 200);
+    const p = await payload(result);
+    assert.match(p.reference, /^WL-[A-F0-9]{10}$/);
+    assert.equal(p.channels.email, 'accepted');
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = realFetch; }
+});
