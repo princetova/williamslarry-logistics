@@ -18,6 +18,12 @@ const VALID_SERVICES = new Set([
   'Express delivery (availability to confirm)',
   'Same-day delivery (availability to confirm)',
   'Economy delivery (availability to confirm)',
+  // Current client-approved service catalogue; legacy entries above support stale forms.
+  'Relocation Services', 'Premium Relocation', 'Economy Relocation', 'Residential & Office Moving',
+  'Pickup & Delivery', 'Economy Delivery', 'Express Delivery', 'Same-Day Delivery', 'Scheduled Delivery',
+  'Handling & Assistance', 'Loading & Offloading', 'Indoor Placement', 'Furniture Arrangement', 'Moving Assistance',
+  'Packaging & Preparation', 'Packing Assistance', 'Protective Packaging', 'Wrapping & Shipment Preparation',
+  'Special Logistics', 'Bulk Delivery', 'Business Logistics', 'E-commerce Delivery', 'Dedicated Transport',
   'Other / Not sure',
 ]);
 const REQUIRED = ['sender','sender_phone','pickup','receiver','receiver_phone','destination','items'];

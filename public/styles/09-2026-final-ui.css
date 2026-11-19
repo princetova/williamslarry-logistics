@@ -406,3 +406,10 @@ body:has(.quote-dialog[open]) .floating-whatsapp{display:none}
     padding-top: 34px;
   }
 }
+
+/* Five-category catalogue: balance the last row on desktop. */
+@media (min-width: 1001px) {
+  .service-grid, .offerings-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .service-grid > .service-tile, .offerings-grid > .offering-card { grid-column: span 2; }
+  .service-grid > .service-tile:nth-last-child(-n+2), .offerings-grid > .offering-card:nth-last-child(-n+2) { grid-column: span 3; }
+}
