@@ -45,7 +45,8 @@ class LocalD1Statement {
 export class LocalD1 {
   constructor(migrationPath) {
     this.database = new DatabaseSync(':memory:');
-    this.database.exec(readFileSync(migrationPath, 'utf8'));
+    const migrationPaths = Array.isArray(migrationPath) ? migrationPath : [migrationPath];
+    for (const path of migrationPaths) this.database.exec(readFileSync(path, 'utf8'));
   }
 
   prepare(sql) {

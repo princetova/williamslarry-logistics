@@ -63,7 +63,12 @@ function isoDateTime(value, name) {
 
 function actorValues(actor) {
   if (!actor?.subject) throw new HttpError(500, 'Administrative identity is unavailable.');
-  return {subject: actor.subject, email: actor.email || null};
+  return {
+    subject: actor.subject,
+    email: actor.email || null,
+    staffId: actor.id || null,
+    role: actor.role || null,
+  };
 }
 
 export function requireShipmentsDatabase(env) {
@@ -127,6 +132,11 @@ function adminShipment(row) {
     currentStatus: row.current_status,
     estimatedDeliveryDate: row.estimated_delivery_date,
     internalNotes: row.internal_notes,
+    assignedStaff: row.assigned_staff_id ? {
+      id: row.assigned_staff_id,
+      displayName: row.assigned_staff_name,
+      email: row.assigned_staff_email,
+    } : null,
     version: row.version,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -135,7 +145,11 @@ function adminShipment(row) {
 
 export async function getAdminShipment(db, trackingNumber) {
   const tracking = normalizeTrackingNumber(trackingNumber);
-  return adminShipment(await db.prepare('SELECT * FROM shipments WHERE tracking_number = ?').bind(tracking).first());
+  return adminShipment(await db.prepare(`SELECT shipments.*,
+    staff_accounts.display_name AS assigned_staff_name,
+    staff_accounts.email AS assigned_staff_email
+    FROM shipments LEFT JOIN staff_accounts ON staff_accounts.id = shipments.assigned_staff_id
+    WHERE shipments.tracking_number = ?`).bind(tracking).first());
 }
 
 export async function createShipment(db, input, actor, options = {}) {
@@ -166,9 +180,11 @@ export async function createShipment(db, input, actor, options = {}) {
         ) VALUES (?, ?, 'Registered', ?, ?, '', ?, ?, ?, ?)`)
           .bind(historyId, id, values.originPublic, values.publicNote, now, now, identity.subject, identity.email),
         db.prepare(`INSERT INTO administrative_audit_records (
-          id, actor_subject, actor_email, action, resource_type, resource_id, request_id, details_json, created_at
-        ) VALUES (?, ?, ?, 'shipment.created', 'shipment', ?, ?, ?, ?)`)
-          .bind(auditId, identity.subject, identity.email, id, options.requestId || null,
+          id, actor_subject, actor_email, actor_staff_id, actor_role, action,
+          resource_type, resource_id, request_id, details_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, 'shipment.created', 'shipment', ?, ?, ?, ?)`)
+          .bind(auditId, identity.subject, identity.email, identity.staffId, identity.role,
+            id, options.requestId || null,
             JSON.stringify({trackingNumber, status: 'Registered'}), now),
       ]);
       return await getAdminShipment(db, trackingNumber);
@@ -243,6 +259,9 @@ export async function updateShipmentStatus(db, trackingNumber, input, actor, opt
   if (!SHIPMENT_STATUSES.includes(status) || !STATUS_TRANSITIONS[shipment.currentStatus].includes(status)) {
     throw new HttpError(409, `Status cannot change from ${shipment.currentStatus} to ${status}.`);
   }
+  if (identity.role === 'Field Staff' && status === 'Cancelled') {
+    throw new HttpError(403, 'Field Staff cannot cancel shipments.');
+  }
   const publicLocation = text(input.publicLocation ?? '', 'Public location', 120, {required: false});
   const publicNote = text(input.publicNote ?? '', 'Public note', 300, {required: false});
   const internalNote = text(input.internalNote ?? '', 'Internal note', 1000, {required: false});
@@ -267,10 +286,12 @@ export async function updateShipmentStatus(db, trackingNumber, input, actor, opt
       .bind(historyId, status, publicLocation, publicNote, internalNote, occurredAt, now,
         identity.subject, identity.email, shipment.id, newVersion, status),
     db.prepare(`INSERT INTO administrative_audit_records (
-      id, actor_subject, actor_email, action, resource_type, resource_id, request_id, details_json, created_at
-    ) SELECT ?, ?, ?, 'shipment.status_updated', 'shipment', id, ?, ?, ? FROM shipments
+      id, actor_subject, actor_email, actor_staff_id, actor_role, action,
+      resource_type, resource_id, request_id, details_json, created_at
+    ) SELECT ?, ?, ?, ?, ?, 'shipment.status_updated', 'shipment', id, ?, ?, ? FROM shipments
       WHERE id = ? AND version = ? AND current_status = ?`)
-      .bind(auditId, identity.subject, identity.email, options.requestId || null,
+      .bind(auditId, identity.subject, identity.email, identity.staffId, identity.role,
+        options.requestId || null,
         JSON.stringify({from: shipment.currentStatus, to: status, version: newVersion}), now,
         shipment.id, newVersion, status),
   ]);
@@ -284,11 +305,17 @@ function escapeLike(value) {
   return value.replace(/[\\%_]/g, character => `\\${character}`);
 }
 
-export async function listShipments(db, searchParams) {
+export async function listShipments(db, searchParams, scope = {kind: 'all'}) {
   const page = Math.max(1, Math.min(10_000, Number(searchParams.get('page')) || 1));
   const limit = Math.max(1, Math.min(100, Number(searchParams.get('limit')) || 25));
   const clauses = [];
   const bindings = [];
+  if (scope.kind === 'assigned') {
+    clauses.push('assigned_staff_id = ?');
+    bindings.push(scope.staffId);
+  } else if (scope.kind !== 'all') {
+    throw new HttpError(403, 'You do not have permission to view shipments.');
+  }
   const status = searchParams.get('status')?.trim();
   if (status) {
     if (!SHIPMENT_STATUSES.includes(status)) throw new HttpError(422, 'Status filter is invalid.');
@@ -333,14 +360,22 @@ export async function listShipments(db, searchParams) {
   };
 }
 
-export async function getDashboardStats(db) {
+export async function getDashboardStats(db, scope = {kind: 'all'}) {
+  const assignedWhere = scope.kind === 'assigned' ? ' WHERE assigned_staff_id = ?' : '';
+  const assignedAnd = scope.kind === 'assigned' ? ' AND assigned_staff_id = ?' : '';
+  const bindings = scope.kind === 'assigned' ? [scope.staffId] : [];
+  if (!['all', 'assigned'].includes(scope.kind)) {
+    throw new HttpError(403, 'You do not have permission to view shipment statistics.');
+  }
   const [total, statuses, recent, overdue] = await Promise.all([
-    db.prepare('SELECT COUNT(*) AS count FROM shipments').first(),
-    db.prepare('SELECT current_status AS status, COUNT(*) AS count FROM shipments GROUP BY current_status').all(),
-    db.prepare("SELECT COUNT(*) AS count FROM shipments WHERE created_at >= datetime('now', '-7 days')").first(),
+    db.prepare(`SELECT COUNT(*) AS count FROM shipments${assignedWhere}`).bind(...bindings).first(),
+    db.prepare(`SELECT current_status AS status, COUNT(*) AS count FROM shipments${assignedWhere}
+      GROUP BY current_status`).bind(...bindings).all(),
+    db.prepare(`SELECT COUNT(*) AS count FROM shipments
+      WHERE created_at >= datetime('now', '-7 days')${assignedAnd}`).bind(...bindings).first(),
     db.prepare(`SELECT COUNT(*) AS count FROM shipments
       WHERE estimated_delivery_date < date('now')
-      AND current_status NOT IN ('Delivered', 'Cancelled', 'Returned')`).first(),
+      AND current_status NOT IN ('Delivered', 'Cancelled', 'Returned')${assignedAnd}`).bind(...bindings).first(),
   ]);
   const byStatus = Object.fromEntries(SHIPMENT_STATUSES.map(status => [status, 0]));
   for (const row of statuses.results || []) byStatus[row.status] = Number(row.count);

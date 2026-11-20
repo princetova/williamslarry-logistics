@@ -1,7 +1,31 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {clearJwksCacheForTests} from '../functions/_lib/admin-auth.js';
+import {onRequest as adminRootHandler} from '../functions/admin.js';
+import {onRequest as adminShellMiddleware} from '../functions/admin/_middleware.js';
 import {onRequest as adminMiddleware} from '../functions/api/admin/_middleware.js';
+
+function staffDatabase({active = true, role = 'Owner', exists = true} = {}) {
+  return {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async first() {
+              if (!exists) return null;
+              return {
+                id: 'staff-owner-1', access_subject: 'access-user-123',
+                email: 'admin@example.test', display_name: 'Synthetic Owner', role,
+                active: active ? 1 : 0, version: 1,
+                created_at: '2026-11-20T00:00:00.000Z', updated_at: '2026-11-20T00:00:00.000Z',
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+}
 
 function base64Url(value) {
   const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : new Uint8Array(value);
@@ -34,20 +58,30 @@ async function signingFixture(overrides = {}) {
   return {token: `${header}.${payload}.${base64Url(signature)}`, publicJwk};
 }
 
-function context({url = 'https://williamslarrylogistics.com/api/admin/shipments', token, env = {}} = {}) {
+function context({
+  url = 'https://williamslarrylogistics.com/api/admin/shipments',
+  token,
+  env = {},
+  method = 'GET',
+  headers = {},
+  nextResponse = () => new Response(null, {status: 204}),
+} = {}) {
   let nextCalled = false;
   const data = {};
+  const requestHeaders = new Headers(headers);
+  if (token) requestHeaders.set('Cf-Access-Jwt-Assertion', token);
   return {
     value: {
-      request: new Request(url, {headers: token ? {'Cf-Access-Jwt-Assertion': token} : {}}),
+      request: new Request(url, {method, headers: requestHeaders}),
       env: {
         ADMIN_ALLOWED_HOSTS: 'williamslarrylogistics.com,www.williamslarrylogistics.com',
         CF_ACCESS_TEAM_DOMAIN: 'https://example.cloudflareaccess.com',
         CF_ACCESS_AUD: 'wll-admin-audience',
+        SHIPMENTS_DB: staffDatabase(),
         ...env,
       },
       data,
-      next: async () => { nextCalled = true; return new Response(null, {status: 204}); },
+      next: async () => { nextCalled = true; return nextResponse(); },
     },
     data,
     wasNextCalled: () => nextCalled,
@@ -91,6 +125,7 @@ test('validates the Access JWT signature, issuer, audience, expiry and identity'
     assert.equal(response.status, 204);
     assert.equal(ctx.wasNextCalled(), true);
     assert.deepEqual(ctx.data.admin, {subject: 'access-user-123', email: 'admin@example.test'});
+    assert.equal(ctx.data.staff.role, 'Owner');
     assert.equal(certCalls, 1);
 
     const [tamperedHeader, tamperedPayload, signature] = fixture.token.split('.');
@@ -112,6 +147,107 @@ test('validates the Access JWT signature, issuer, audience, expiry and identity'
     clearJwksCacheForTests();
     globalThis.fetch = async () => new Response(JSON.stringify({keys: [wrongIssuer.publicJwk]}));
     assert.equal((await adminMiddleware(context({token: wrongIssuer.token}).value)).status, 401);
+  } finally {
+    globalThis.fetch = realFetch;
+    clearJwksCacheForTests();
+  }
+});
+
+test('protects the admin shell, normalized paths and dashboard assets with Access and no-store headers', async () => {
+  clearJwksCacheForTests();
+  const realFetch = globalThis.fetch;
+  const fixture = await signingFixture();
+  globalThis.fetch = async () => new Response(JSON.stringify({keys: [fixture.publicJwk]}));
+  try {
+    const paths = ['/admin', '/admin/', '/admin/index', '/admin/index.html', '/admin/admin.js', '/admin/admin.css'];
+    for (const path of paths) {
+      const handler = path === '/admin' ? adminRootHandler : adminShellMiddleware;
+      const denied = context({url: `https://williamslarrylogistics.com${path}`});
+      assert.equal((await handler(denied.value)).status, 401, path);
+      assert.equal(denied.wasNextCalled(), false, path);
+
+      const allowed = context({
+        url: `https://williamslarrylogistics.com${path}`,
+        token: fixture.token,
+        nextResponse: () => new Response('protected asset', {
+          status: 200,
+          headers: {'cache-control': 'public, max-age=86400'},
+        }),
+      });
+      const response = await handler(allowed.value);
+      assert.equal(response.status, 200, path);
+      assert.equal(allowed.wasNextCalled(), true, path);
+      assert.equal(response.headers.get('cache-control'), 'no-store', path);
+      assert.equal(response.headers.get('x-frame-options'), 'DENY', path);
+      assert.match(response.headers.get('content-security-policy'), /script-src 'self'/, path);
+      assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'none'/, path);
+      assert.equal(await response.text(), 'protected asset', path);
+    }
+
+    for (const host of ['williamslarry-logistics.pages.dev', 'preview.example.com']) {
+      const blocked = context({url: `https://${host}/admin/`, token: fixture.token});
+      assert.equal((await adminShellMiddleware(blocked.value)).status, 403, host);
+      assert.equal(blocked.wasNextCalled(), false, host);
+    }
+  } finally {
+    globalThis.fetch = realFetch;
+    clearJwksCacheForTests();
+  }
+});
+
+test('rejects cross-site administrative mutations and permits authenticated same-origin writes', async () => {
+  clearJwksCacheForTests();
+  const realFetch = globalThis.fetch;
+  const fixture = await signingFixture();
+  globalThis.fetch = async () => new Response(JSON.stringify({keys: [fixture.publicJwk]}));
+  try {
+    for (const headers of [
+      {},
+      {Origin: 'https://attacker.example'},
+      {Origin: 'https://williamslarrylogistics.com', 'Sec-Fetch-Site': 'cross-site'},
+    ]) {
+      const blocked = context({method: 'POST', token: fixture.token, headers});
+      assert.equal((await adminMiddleware(blocked.value)).status, 403);
+      assert.equal(blocked.wasNextCalled(), false);
+    }
+
+    const allowed = context({
+      method: 'POST',
+      token: fixture.token,
+      headers: {Origin: 'https://williamslarrylogistics.com', 'Sec-Fetch-Site': 'same-origin'},
+    });
+    assert.equal((await adminMiddleware(allowed.value)).status, 204);
+    assert.equal(allowed.wasNextCalled(), true);
+  } finally {
+    globalThis.fetch = realFetch;
+    clearJwksCacheForTests();
+  }
+});
+
+test('fails closed for missing D1, unprovisioned identities and deactivated staff', async () => {
+  clearJwksCacheForTests();
+  const realFetch = globalThis.fetch;
+  const fixture = await signingFixture();
+  globalThis.fetch = async () => new Response(JSON.stringify({keys: [fixture.publicJwk]}));
+  try {
+    const missing = context({token: fixture.token, env: {SHIPMENTS_DB: null}});
+    assert.equal((await adminMiddleware(missing.value)).status, 503);
+    assert.equal(missing.wasNextCalled(), false);
+
+    const unknown = context({token: fixture.token, env: {SHIPMENTS_DB: staffDatabase({exists: false})}});
+    assert.equal((await adminMiddleware(unknown.value)).status, 403);
+    assert.equal(unknown.wasNextCalled(), false);
+
+    const inactive = context({token: fixture.token, env: {SHIPMENTS_DB: staffDatabase({active: false})}});
+    assert.equal((await adminMiddleware(inactive.value)).status, 403);
+    assert.equal(inactive.wasNextCalled(), false);
+
+    const shell = context({
+      url: 'https://williamslarrylogistics.com/admin/', token: fixture.token,
+      env: {SHIPMENTS_DB: staffDatabase({active: false})},
+    });
+    assert.equal((await adminShellMiddleware(shell.value)).status, 403);
+    assert.equal(shell.wasNextCalled(), false);
   } finally {
     globalThis.fetch = realFetch;
     clearJwksCacheForTests();

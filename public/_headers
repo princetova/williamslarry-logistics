@@ -8,3 +8,19 @@
 
 /assets/*
   Cache-Control: public, max-age=86400
+
+/admin
+  Cache-Control: no-store
+  Content-Security-Policy: default-src 'none'; base-uri 'none'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'
+  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+
+/admin/*
+  Cache-Control: no-store
+  Content-Security-Policy: default-src 'none'; base-uri 'none'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'
+  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY

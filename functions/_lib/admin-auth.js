@@ -117,6 +117,24 @@ export async function verifyAdminRequest(request, env) {
   };
 }
 
+export function requireAdminSameOrigin(request) {
+  const method = request.method.toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return;
+
+  const expected = new URL(request.url).origin;
+  const supplied = request.headers.get('Origin');
+  let actual;
+  try {
+    actual = new URL(supplied).origin;
+  } catch {
+    throw new HttpError(403, 'Administrative request origin is not allowed.');
+  }
+  const fetchSite = request.headers.get('Sec-Fetch-Site');
+  if (actual !== expected || (fetchSite && fetchSite !== 'same-origin')) {
+    throw new HttpError(403, 'Administrative request origin is not allowed.');
+  }
+}
+
 export function clearJwksCacheForTests() {
   jwksCache.clear();
 }

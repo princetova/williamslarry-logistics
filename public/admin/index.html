@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Operations | WilliamsLarry Logistics</title>
+<link rel="stylesheet" href="/admin/admin.css">
+<script src="/admin/admin.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="workspace">
+<aside class="rail" aria-label="Administration navigation">
+ <a class="brand" href="/admin/"><img src="/assets/logo-mark.png" alt="" width="42" height="42"><span>WILLIAMSLARRY<small>LOGISTICS / OPERATIONS</small></span></a>
+ <div class="rail-caption">WORKSPACE</div>
+ <nav><button class="nav active" type="button" data-view="overview" aria-current="page"><span aria-hidden="true">▦</span> Overview</button><button class="nav" type="button" data-view="shipments"><span aria-hidden="true">▤</span> All shipments</button><button class="nav" type="button" data-view="create"><span aria-hidden="true">＋</span> New shipment</button></nav>
+ <div class="rail-bottom"><div class="rail-caption">PUBLIC SITE</div><a href="/track-shipment.html" class="nav" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">↗</span> Customer tracking</a><a href="/" class="nav"><span aria-hidden="true">↖</span> Website</a><a href="/cdn-cgi/access/logout" class="nav"><span aria-hidden="true">⇥</span> Sign out</a><div class="rail-footer">WLL / SHIPMENT MANAGEMENT</div></div>
+</aside>
+<main id="main" tabindex="-1">
+ <header class="top"><span class="crumb">Operations <span>/</span> <strong id="crumb">Overview</strong></span><div class="top-right"><span class="secure"><span></span> Admin portal</span><button id="refresh" type="button" class="button quiet">↻ Refresh</button></div></header>
+ <div class="content">
+ <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+ <section id="overview" class="view" aria-labelledby="overview-title">
+ <div class="heading"><div><div class="eyebrow">WILLIAMSLARRY / OPERATIONS</div><h1 id="overview-title">Shipment overview<span>.</span></h1><p>Register, manage and monitor every delivery in one place.</p></div><button class="button primary" type="button" data-view="create">＋ New shipment</button></div>
+ <div class="metrics" id="metrics" aria-label="Shipment statistics">
+ <article class="metric"><div class="metric-label">Total shipments <span>▦</span></div><strong id="stat-total">—</strong><p>All registered shipments</p></article>
+ <article class="metric"><div class="metric-label">Active deliveries <span>↗</span></div><strong id="stat-active">—</strong><p>Currently in progress</p></article>
+ <article class="metric"><div class="metric-label">Delivered <span>✓</span></div><strong id="stat-delivered">—</strong><p>Successfully completed</p></article>
+ <article class="metric alert"><div class="metric-label">Overdue shipments <span>!</span></div><strong id="stat-overdue">—</strong><p>Active · past estimated date</p></article>
+ </div>
+ <div class="overview-grid"><section class="panel distribution"><div class="panel-head"><div><div class="eyebrow">NETWORK ACTIVITY</div><h2>Shipment status</h2></div><span class="subtle">All time</span></div><div id="distribution" class="distribution-body">Loading status counts…</div></section><section class="panel spotlight"><div class="eyebrow">QUICK ACTION</div><h2>Ready for the next move?</h2><p>Create a shipment to generate its unique tracking reference. Your customer can then follow every recorded update.</p><button type="button" class="button primary" data-view="create">Register a shipment ↗</button><div class="spotline"></div><div class="small-label">REGISTERED IN THE LAST 7 DAYS</div><strong id="stat-week">—</strong></section></div>
+ <section class="panel"><div class="panel-head"><div><div class="eyebrow">SHIPMENT REGISTER</div><h2>Recent shipments</h2></div><button type="button" class="button quiet" data-view="shipments">View all ↗</button></div><div id="recent" class="table-wrap">Loading shipments…</div></section>
+ </section>
+ <section id="shipments" class="view" hidden aria-labelledby="shipments-title"><div class="heading"><div><div class="eyebrow">OPERATIONS / REGISTER</div><h1 id="shipments-title">All shipments<span>.</span></h1><p>Find a shipment and manage its delivery progress.</p></div><button type="button" class="button primary" data-view="create">＋ New shipment</button></div><section class="panel"><form id="search-form" class="filters"><label>Search shipments<input name="q" maxlength="100" placeholder="Tracking number, name or location"></label><label>Status<select name="status" id="filter-status"><option value="">All statuses</option></select></label><button class="button primary" type="submit">Search</button><button class="button quiet" type="reset">Clear</button></form><div id="shipment-table" class="table-wrap">Loading shipments…</div><div class="pagination"><span id="page-info" aria-live="polite"></span><button id="prev" type="button" class="button quiet">Previous</button><button id="next" type="button" class="button quiet">Next</button></div></section></section>
+ <section id="create" class="view" hidden aria-labelledby="create-title"><div class="heading"><div><div class="eyebrow">OPERATIONS / NEW SHIPMENT</div><h1 id="create-title">Register shipment<span>.</span></h1><p>A unique tracking number is generated after registration.</p></div><button class="button quiet" type="button" data-view="shipments">← All shipments</button></div><form id="create-form" class="form-stack"><section class="panel form-section"><div class="panel-head"><div><div class="eyebrow">01 / PRIVATE</div><h2>Sender & receiver</h2></div></div><div class="fields"><label>Sender name<input name="senderName" required maxlength="90" autocomplete="off"></label><label>Sender phone<input name="senderPhone" type="tel" required maxlength="24" autocomplete="off"></label><label>Receiver name<input name="receiverName" required maxlength="90" autocomplete="off"></label><label>Receiver phone<input name="receiverPhone" type="tel" required maxlength="24" autocomplete="off"></label></div></section><section class="panel form-section"><div class="panel-head"><div><div class="eyebrow">02 / ROUTE</div><h2>Collection & destination</h2></div></div><div class="fields"><label>Exact pickup address · private<textarea name="originAddress" required maxlength="300" rows="3"></textarea></label><label>Exact delivery address · private<textarea name="destinationAddress" required maxlength="300" rows="3"></textarea></label><label>Public origin (city/state only)<input name="originPublic" required maxlength="120" placeholder="Owerri, Imo State"></label><label>Public destination (city/state only)<input name="destinationPublic" required maxlength="120" placeholder="Port Harcourt, Rivers State"></label></div></section><section class="panel form-section"><div class="panel-head"><div><div class="eyebrow">03 / PARCEL</div><h2>Shipment details</h2></div></div><div class="fields"><label>Private item description<textarea name="itemDescription" required maxlength="700" rows="3"></textarea></label><label>Public item summary<input name="publicItemSummary" required maxlength="160" placeholder="Two boxes"></label><label>Estimated delivery date (optional)<input name="estimatedDeliveryDate" type="date"></label><label>Public registration note (optional)<textarea name="publicNote" maxlength="300" rows="2"></textarea></label><label class="wide">Internal notes (optional)<textarea name="internalNotes" maxlength="1000" rows="3"></textarea></label></div><p class="privacy">Public fields appear on the customer tracking page. Never include names, phone numbers, exact addresses or sensitive descriptions in these fields.</p></section><div class="form-actions"><button class="button quiet" type="button" data-view="shipments">Cancel</button><button class="button primary" type="submit">Register shipment ↗</button></div></form></section>
+ <section id="detail" class="view" hidden aria-labelledby="detail-title"><div class="heading"><div><div class="eyebrow">OPERATIONS / SHIPMENT DETAILS</div><h1 id="detail-title">Shipment details<span>.</span></h1><p id="detail-ref"></p></div><button class="button quiet" type="button" data-view="shipments">← All shipments</button></div><div id="detail-content"></div></section>
+ <footer class="footer">WILLIAMSLARRY LOGISTICS <span>Operations dashboard · West Africa Time (WAT)</span></footer>
+ </div>
+</main>
+</div>
+</body></html>

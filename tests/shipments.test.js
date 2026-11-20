@@ -12,8 +12,14 @@ import {onRequestPost as createEndpoint} from '../functions/api/admin/shipments/
 import {onRequestGet as statsEndpoint} from '../functions/api/admin/stats.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const migration = resolve(here, '../migrations/0001_create_shipment_tracking.sql');
-const actor = {subject: 'access-user-123', email: 'operations@example.test'};
+const migrations = [
+  resolve(here, '../migrations/0001_create_shipment_tracking.sql'),
+  resolve(here, '../migrations/0002_add_staff_authorization.sql'),
+];
+const actor = {
+  id: 'staff-owner-1', subject: 'access-user-123', email: 'operations@example.test',
+  displayName: 'Synthetic Owner', role: 'Owner', active: true, version: 1,
+};
 const privateData = {
   senderName: 'Synthetic Sender',
   senderPhone: '+234 700 000 0001',
@@ -31,7 +37,7 @@ const privateData = {
 };
 
 function database() {
-  return new LocalD1(migration);
+  return new LocalD1(migrations);
 }
 
 function adminRequest(body) {
@@ -52,7 +58,7 @@ test('creates a shipment atomically with initial history and audit records', asy
   const db = database();
   t.after(() => db.close());
   const response = await createEndpoint({
-    request: adminRequest(privateData), env: {SHIPMENTS_DB: db}, data: {admin: actor},
+    request: adminRequest(privateData), env: {SHIPMENTS_DB: db}, data: {staff: actor},
   });
   assert.equal(response.status, 201);
   const payload = await response.json();
@@ -219,7 +225,7 @@ test('returns administrative dashboard statistics without customer data', async 
   const db = database();
   t.after(() => db.close());
   await createShipment(db, privateData, actor);
-  const response = await statsEndpoint({env: {SHIPMENTS_DB: db}});
+  const response = await statsEndpoint({env: {SHIPMENTS_DB: db}, data: {staff: actor}});
   assert.equal(response.status, 200);
   const payload = await response.json();
   assert.equal(payload.stats.total, 1);
