@@ -1,5 +1,6 @@
 import {requirePermission, STAFF_ROLES} from './authorization.js';
 import {HttpError} from './http.js';
+import {optionalIsoDateTime, optionalText, parsePagination, validateDateRange} from './query.js';
 import {getAdminShipment, normalizeTrackingNumber} from './shipments.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -50,8 +51,7 @@ function auditActor(actor) {
 }
 
 export async function listStaffAccounts(db, searchParams) {
-  const page = Math.max(1, Math.min(10_000, Number(searchParams.get('page')) || 1));
-  const limit = Math.max(1, Math.min(100, Number(searchParams.get('limit')) || 25));
+  const {page, limit, offset} = parsePagination(searchParams);
   const clauses = [];
   const bindings = [];
   const selectedRole = searchParams.get('role')?.trim();
@@ -78,7 +78,7 @@ export async function listStaffAccounts(db, searchParams) {
     .bind(...bindings).first();
   const result = await db.prepare(`SELECT * FROM staff_accounts ${where}
     ORDER BY active DESC, display_name ASC LIMIT ? OFFSET ?`)
-    .bind(...bindings, limit, (page - 1) * limit).all();
+    .bind(...bindings, limit, offset).all();
   return {
     page,
     limit,
@@ -241,8 +241,7 @@ export async function assignShipment(db, trackingNumber, input, actor, options =
 }
 
 export async function listAuditRecords(db, searchParams) {
-  const page = Math.max(1, Math.min(10_000, Number(searchParams.get('page')) || 1));
-  const limit = Math.max(1, Math.min(100, Number(searchParams.get('limit')) || 50));
+  const {page, limit, offset} = parsePagination(searchParams, {defaultLimit: 50});
   const action = searchParams.get('action')?.trim();
   const resourceType = searchParams.get('resourceType')?.trim();
   const clauses = [];
@@ -255,6 +254,22 @@ export async function listAuditRecords(db, searchParams) {
     clauses.push('resource_type = ?');
     bindings.push(text(resourceType, 'Resource type', 60));
   }
+  const actorStaffId = optionalText(searchParams.get('actorStaffId'), 'Actor staff ID', 100);
+  if (actorStaffId) {
+    clauses.push('actor_staff_id = ?');
+    bindings.push(actorStaffId);
+  }
+  const from = optionalIsoDateTime(searchParams.get('from'), 'From');
+  const to = optionalIsoDateTime(searchParams.get('to'), 'To', {endOfDay: true});
+  validateDateRange(from, to);
+  if (from) {
+    clauses.push('created_at >= ?');
+    bindings.push(from);
+  }
+  if (to) {
+    clauses.push('created_at <= ?');
+    bindings.push(to);
+  }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const total = await db.prepare(`SELECT COUNT(*) AS count FROM administrative_audit_records ${where}`)
     .bind(...bindings).first();
@@ -262,7 +277,7 @@ export async function listAuditRecords(db, searchParams) {
     action, resource_type, resource_id, request_id, details_json, created_at
     FROM administrative_audit_records ${where}
     ORDER BY created_at DESC LIMIT ? OFFSET ?`)
-    .bind(...bindings, limit, (page - 1) * limit).all();
+    .bind(...bindings, limit, offset).all();
   return {
     page,
     limit,

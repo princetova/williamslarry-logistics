@@ -67,6 +67,9 @@ The frontend hiding a section is only presentation. The server remains authorita
     "total": 120,
     "createdLast7Days": 18,
     "overdueActive": 4,
+    "unassignedActive": 7,
+    "pendingAcknowledgements": 3,
+    "openDeliveryIssues": 2,
     "byStatus": {
       "Registered": 10,
       "Picked up": 8,
@@ -77,14 +80,20 @@ The frontend hiding a section is only presentation. The server remains authorita
       "Delayed": 4,
       "Cancelled": 2,
       "Returned": 1
-    }
+    },
+    "staffWorkload": [
+      {
+        "staff": {"id": "staff UUID", "displayName": "Worker Name"},
+        "activeAssigned": 6,
+        "pendingAcknowledgements": 1,
+        "delayed": 1
+      }
+    ]
   }
 }
 ```
 
-Supported today: total, seven-day registrations, overdue active shipments and lifecycle distribution.
-
-Not yet supplied: unassigned count, awaiting-acknowledgement count, open-issue count, staff workload or time-series analytics.
+`unassignedActive`, `pendingAcknowledgements` and workload counts exclude terminal shipments (`Delivered`, `Cancelled`, `Returned`). `openDeliveryIssues` counts append-only issue reports without a corresponding append-only resolution. Only active Field Staff appear in `staffWorkload`. Time-series analytics are not supplied.
 
 ## 2. Shipment registration
 
@@ -112,12 +121,14 @@ Returns `201 {ok, shipment}`. The generated `shipment.trackingNumber` is the onl
 
 ## 3. Shipment search, filtering and details
 
-### `GET /api/admin/shipments?page=1&limit=25&status=In%20transit&q=WLL-...`
+### `GET /api/admin/shipments?page=1&limit=25&status=In%20transit&q=WLL-...&assignedStaffId={id}&assignment=pending`
 
 - `page`: positive integer.
 - `limit`: 1–100.
 - `status`: exact lifecycle status.
 - `q`: searches tracking reference, customer names/phones and public route summaries.
+- `assignedStaffId`: exact current Field Staff UUID.
+- `assignment`: `unassigned`, `pending` or `acknowledged`.
 
 Response:
 
@@ -138,6 +149,13 @@ Response:
       "itemSummary": "One parcel",
       "currentStatus": "In transit",
       "estimatedDeliveryDate": "2026-11-30",
+      "assignedStaff": {
+        "id": "staff UUID",
+        "displayName": "Worker Name",
+        "active": true
+      },
+      "assignmentSequence": 2,
+      "assignmentAcknowledgedAt": "ISO timestamp or null",
       "version": 4,
       "createdAt": "ISO timestamp",
       "updatedAt": "ISO timestamp"
@@ -202,9 +220,29 @@ Only server-approved lifecycle transitions succeed. A successful update incremen
 
 ### Load active workers
 
-`GET /api/admin/staff?role=Field%20Staff&active=true&page=1&limit=100`
+`GET /api/admin/dispatch/workers?page=1&limit=25&q=name`
 
-Owner only under the current Phase 4A permission matrix. This is a backend limitation for a Receptionist-operated Dispatch Centre; see limitations below.
+Available to Owner and Receptionist. It returns only active Field Staff and intentionally omits email, Access subject and staff-management fields.
+
+```json
+{
+  "ok": true,
+  "page": 1,
+  "limit": 25,
+  "total": 1,
+  "items": [
+    {
+      "id": "staff UUID",
+      "displayName": "Worker Name",
+      "workload": {
+        "activeAssigned": 6,
+        "pendingAcknowledgements": 1,
+        "delayed": 1
+      }
+    }
+  ]
+}
+```
 
 ### Assign, reassign or unassign
 
@@ -226,7 +264,7 @@ Owner only under the current Phase 4A permission matrix. This is a backend limit
 
 ## 5. Assignment acknowledgement monitoring
 
-Current shipment detail supplies:
+Shipment detail and shipment-list rows supply:
 
 - `assignedStaff`;
 - `assignmentSequence`;
@@ -234,13 +272,71 @@ Current shipment detail supplies:
 
 `null` means the current assignment has not been acknowledged. A timestamp means the currently assigned worker acknowledged it.
 
-The shipment list does not currently return assignment or acknowledgement fields, and the statistics endpoint does not return an awaiting-acknowledgement count. A dispatch-wide acknowledgement board therefore requires additional backend work or one detail request per shipment, which is not recommended for Cloudflare free-tier efficiency.
+### Assignment history
+
+`GET /api/admin/shipments/{trackingNumber}/assignments?page=1&limit=25`
+
+```json
+{
+  "ok": true,
+  "trackingNumber": "WLL-...",
+  "page": 1,
+  "limit": 25,
+  "total": 2,
+  "items": [
+    {
+      "id": "assignment event UUID",
+      "previousStaff": {"id": "staff UUID", "displayName": "Previous Worker"},
+      "assignedStaff": {"id": "staff UUID", "displayName": "Current Worker"},
+      "assignedBy": {"id": "staff UUID", "displayName": "Dispatcher"},
+      "note": "Optional dispatch note",
+      "assignedAt": "ISO timestamp"
+    }
+  ]
+}
+```
+
+Any staff field may be `null` where the event represents an initial assignment, unassignment, or a historical identity without a current matching staff row.
+
+### Acknowledgement history
+
+`GET /api/admin/shipments/{trackingNumber}/acknowledgements?page=1&limit=25`
+
+Each item contains `id`, `assignmentEventId`, `staff: {id, displayName}` and `acknowledgedAt`. Both history endpoints are Owner/Receptionist only and omit email, Access subject and customer details.
 
 ## 6. Delivery status and issue monitoring
 
 Status monitoring is available through shipment list/detail and status history.
 
-Current backend limitation: there is no administrative endpoint for `shipment_delivery_issues`, acknowledgement history or assignment history. Private issue reports are stored and audited, but the Premium Admin Portal cannot yet retrieve them through `/api/admin/*`.
+### List delivery issues
+
+`GET /api/admin/issues?page=1&limit=25&state=open&type=Delay&trackingNumber=WLL-...&reportedByStaffId={id}&from=2026-11-01&to=2026-11-30`
+
+- `state`: `open` or `resolved`.
+- `type`: `Delay` or `Delivery issue`.
+- `trackingNumber`: exact validated tracking number.
+- `reportedByStaffId`: exact staff UUID.
+- `from` / `to`: ISO date or date-time; dates cover the full UTC day.
+
+Each issue item contains `id`, `type`, `trackingNumber`, `shipmentStatus`, safe public `route`, `reportedBy: {id, displayName}`, `publicLocation`, `publicNote`, private operational `operationalNote`, timestamps and either `resolution: null` or:
+
+```json
+{
+  "id": "resolution UUID",
+  "note": "Resolution note",
+  "resolvedAt": "ISO timestamp",
+  "resolvedBy": {"id": "staff UUID", "displayName": "Administrator"}
+}
+```
+
+Issue responses never contain customer phone numbers, exact private addresses, staff email/Access subject, shipment internal notes or administrative audit data.
+
+### Issue detail and resolution
+
+- `GET /api/admin/issues/{issueId}` returns `{ok, issue}` with the same safe projection.
+- `POST /api/admin/issues/{issueId}/resolve` accepts `{"resolutionNote":"Required text"}`.
+
+Issue reports remain append-only. Resolution creates a separate append-only record and an audit record atomically. A duplicate or concurrent resolution returns `409`; reload the issue before continuing. Reopening is not supported.
 
 Do not attempt to call `/api/staff/*` from the Admin Portal; the separate Access audience and D1 role checks intentionally reject Owner and Receptionist identities.
 
@@ -285,13 +381,13 @@ Only supplied mutable fields change. The Access subject is immutable, and the fi
 
 ## 8. Audit Logs — Owner only
 
-`GET /api/admin/audit?page=1&limit=50&action=shipment.created&resourceType=shipment`
+`GET /api/admin/audit?page=1&limit=50&action=shipment.created&resourceType=shipment&actorStaffId={id}&from=2026-11-01&to=2026-11-30`
 
-Returns paginated append-only audit metadata with actor, action, resource, request ID, structured details and creation time. Current filters are exact `action` and `resourceType`; actor, date-range and free-text filters are not implemented.
+Returns paginated append-only audit metadata with actor, action, resource, request ID, structured details and creation time. `action`, `resourceType` and `actorStaffId` are exact filters. `from` and `to` accept ISO dates or date-times; date-only `to` includes the complete UTC day. Audit access and all filters remain Owner only. Free-text audit search is not implemented.
 
 ## Mutation UX contract
 
-For registration, status, assignment and staff mutations:
+For registration, status, assignment, issue resolution and staff mutations:
 
 1. Disable duplicate submission while a request is pending.
 2. Keep the version supplied by the latest server response.
@@ -300,16 +396,16 @@ For registration, status, assignment and staff mutations:
 5. Render server messages as plain text, never HTML.
 6. Never optimistically invent status, assignment or tracking-reference values.
 
-## Backend limitations affecting Phase 4C
+## Remaining backend limitations affecting Phase 4C
 
-1. Receptionists can assign by known staff UUID, but `GET /api/admin/staff` is Owner-only. A Receptionist Dispatch Centre cannot safely populate its worker selector until a limited active-Field-Staff directory endpoint is added.
-2. Shipment list rows do not include assignee, assignment sequence or acknowledgement state.
-3. Dashboard statistics do not include unassigned, awaiting acknowledgement, open issues or worker workload.
-4. No administrative delivery-issue listing/detail endpoint exists.
-5. No administrative assignment-history or acknowledgement-history endpoint exists.
-6. Audit filters do not support date range or actor.
-7. There is no bulk assignment or bulk status mutation.
-8. There are no finance, GPS or proof-of-delivery APIs.
-9. The `/staff` visual frontend has not been implemented; only its protected backend routes and contract exist.
+1. There is intentionally no bulk assignment, bulk status mutation or bulk issue resolution. Every shipment mutation retains individual version/concurrency control.
+2. Issue resolution is final; reopening or threaded issue comments are not implemented.
+3. Time-series dashboard analytics are not implemented.
+4. There are no finance, GPS or proof-of-delivery APIs.
+5. The `/staff` visual frontend has not been implemented; only its protected backend routes and contract exist.
 
-These gaps should be resolved through separately approved backend endpoints rather than client-side workarounds or weakened authorization.
+Do not work around these boundaries client-side or weaken server authorization.
+
+## Shared validation and pagination
+
+All Phase 4C.1 list/history endpoints return `page`, `limit`, `total` and `items`. `page` must be an integer from 1 to 10000; `limit` must be an integer from 1 to 100. Invalid pagination, filters, tracking references and date ranges return `422`. Administrative routes require the production admin hostname, configured Access audience, an active D1 staff identity, and an Owner or Receptionist role. Audit and Staff Management remain Owner only.

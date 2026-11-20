@@ -16,6 +16,7 @@ const migrations = [
   resolve(here, '../migrations/0001_create_shipment_tracking.sql'),
   resolve(here, '../migrations/0002_add_staff_authorization.sql'),
   resolve(here, '../migrations/0003_add_dispatch_workflow.sql'),
+  resolve(here, '../migrations/0004_add_admin_portal_monitoring.sql'),
 ];
 const actor = {
   id: 'staff-owner-1', subject: 'access-user-123', email: 'operations@example.test',

@@ -1,4 +1,5 @@
 import {HttpError} from './http.js';
+import {optionalText, parsePagination} from './query.js';
 
 export const SHIPMENT_STATUSES = Object.freeze([
   'Registered', 'Picked up', 'In transit', 'Arrived at destination',
@@ -315,12 +316,11 @@ function escapeLike(value) {
 }
 
 export async function listShipments(db, searchParams, scope = {kind: 'all'}) {
-  const page = Math.max(1, Math.min(10_000, Number(searchParams.get('page')) || 1));
-  const limit = Math.max(1, Math.min(100, Number(searchParams.get('limit')) || 25));
+  const {page, limit, offset} = parsePagination(searchParams);
   const clauses = [];
   const bindings = [];
   if (scope.kind === 'assigned') {
-    clauses.push('assigned_staff_id = ?');
+    clauses.push('shipments.assigned_staff_id = ?');
     bindings.push(scope.staffId);
   } else if (scope.kind !== 'all') {
     throw new HttpError(403, 'You do not have permission to view shipments.');
@@ -328,26 +328,47 @@ export async function listShipments(db, searchParams, scope = {kind: 'all'}) {
   const status = searchParams.get('status')?.trim();
   if (status) {
     if (!SHIPMENT_STATUSES.includes(status)) throw new HttpError(422, 'Status filter is invalid.');
-    clauses.push('current_status = ?');
+    clauses.push('shipments.current_status = ?');
     bindings.push(status);
   }
   const query = searchParams.get('q')?.trim();
   if (query) {
     if ([...query].length > 100) throw new HttpError(422, 'Search query is too long.');
     const pattern = `%${escapeLike(query)}%`;
-    clauses.push(`(tracking_number LIKE ? ESCAPE '\\' OR sender_name LIKE ? ESCAPE '\\'
-      OR sender_phone LIKE ? ESCAPE '\\' OR receiver_name LIKE ? ESCAPE '\\'
-      OR receiver_phone LIKE ? ESCAPE '\\' OR origin_public LIKE ? ESCAPE '\\'
-      OR destination_public LIKE ? ESCAPE '\\')`);
+    clauses.push(`(shipments.tracking_number LIKE ? ESCAPE '\\' OR shipments.sender_name LIKE ? ESCAPE '\\'
+      OR shipments.sender_phone LIKE ? ESCAPE '\\' OR shipments.receiver_name LIKE ? ESCAPE '\\'
+      OR shipments.receiver_phone LIKE ? ESCAPE '\\' OR shipments.origin_public LIKE ? ESCAPE '\\'
+      OR shipments.destination_public LIKE ? ESCAPE '\\')`);
     bindings.push(...Array(7).fill(pattern));
+  }
+  const assignedStaffId = optionalText(searchParams.get('assignedStaffId'), 'Assigned staff ID', 100);
+  if (assignedStaffId) {
+    clauses.push('shipments.assigned_staff_id = ?');
+    bindings.push(assignedStaffId);
+  }
+  const assignment = searchParams.get('assignment')?.trim();
+  if (assignment) {
+    if (!['unassigned', 'pending', 'acknowledged'].includes(assignment)) {
+      throw new HttpError(422, 'Assignment filter is invalid.');
+    }
+    if (assignment === 'unassigned') clauses.push('shipments.assigned_staff_id IS NULL');
+    if (assignment === 'pending') {
+      clauses.push('shipments.assigned_staff_id IS NOT NULL AND shipments.assignment_acknowledged_at IS NULL');
+    }
+    if (assignment === 'acknowledged') clauses.push('shipments.assignment_acknowledged_at IS NOT NULL');
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const totalRow = await db.prepare(`SELECT COUNT(*) AS total FROM shipments ${where}`).bind(...bindings).first();
-  const result = await db.prepare(`SELECT id, tracking_number, sender_name, receiver_name,
-    origin_public, destination_public, public_item_summary, current_status,
-    estimated_delivery_date, version, created_at, updated_at
-    FROM shipments ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
-    .bind(...bindings, limit, (page - 1) * limit).all();
+  const result = await db.prepare(`SELECT shipments.id, shipments.tracking_number,
+    shipments.sender_name, shipments.receiver_name, shipments.origin_public,
+    shipments.destination_public, shipments.public_item_summary, shipments.current_status,
+    shipments.estimated_delivery_date, shipments.version, shipments.assignment_sequence,
+    shipments.assignment_acknowledged_at, shipments.created_at, shipments.updated_at,
+    staff_accounts.id AS assigned_staff_id, staff_accounts.display_name AS assigned_staff_name,
+    staff_accounts.active AS assigned_staff_active
+    FROM shipments LEFT JOIN staff_accounts ON staff_accounts.id = shipments.assigned_staff_id
+    ${where} ORDER BY shipments.created_at DESC LIMIT ? OFFSET ?`)
+    .bind(...bindings, limit, offset).all();
   return {
     page,
     limit,
@@ -362,6 +383,13 @@ export async function listShipments(db, searchParams, scope = {kind: 'all'}) {
       itemSummary: row.public_item_summary,
       currentStatus: row.current_status,
       estimatedDeliveryDate: row.estimated_delivery_date,
+      assignedStaff: row.assigned_staff_id ? {
+        id: row.assigned_staff_id,
+        displayName: row.assigned_staff_name,
+        active: Boolean(row.assigned_staff_active),
+      } : null,
+      assignmentSequence: Number(row.assignment_sequence || 0),
+      assignmentAcknowledgedAt: row.assignment_acknowledged_at || null,
       version: row.version,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

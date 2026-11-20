@@ -1,4 +1,5 @@
 import {HttpError} from './http.js';
+import {parsePagination} from './query.js';
 import {
   getDashboardStats, normalizeTrackingNumber, SHIPMENT_STATUSES, STATUS_TRANSITIONS,
   updateShipmentStatus,
@@ -119,8 +120,7 @@ export async function getAssignedDelivery(db, trackingNumber, staff) {
 }
 
 export async function listAssignedDeliveries(db, searchParams, staff) {
-  const page = Math.max(1, Math.min(10_000, Number(searchParams.get('page')) || 1));
-  const limit = Math.max(1, Math.min(100, Number(searchParams.get('limit')) || 25));
+  const {page, limit, offset} = parsePagination(searchParams);
   const clauses = ['assigned_staff_id = ?'];
   const bindings = [staff.id];
   const status = searchParams.get('status')?.trim();
@@ -144,7 +144,7 @@ export async function listAssignedDeliveries(db, searchParams, staff) {
     destination_public, public_item_summary, current_status, estimated_delivery_date,
     version, assignment_sequence, assignment_acknowledged_at, created_at, updated_at
     FROM shipments ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
-    .bind(...bindings, limit, (page - 1) * limit).all();
+    .bind(...bindings, limit, offset).all();
   return {
     page,
     limit,
