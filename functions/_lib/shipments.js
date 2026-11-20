@@ -137,6 +137,8 @@ function adminShipment(row) {
       displayName: row.assigned_staff_name,
       email: row.assigned_staff_email,
     } : null,
+    assignmentSequence: Number(row.assignment_sequence || 0),
+    assignmentAcknowledgedAt: row.assignment_acknowledged_at || null,
     version: row.version,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -168,12 +170,12 @@ export async function createShipment(db, input, actor, options = {}) {
           id, tracking_number, sender_name, sender_phone, receiver_name, receiver_phone,
           origin_address, origin_public, destination_address, destination_public,
           item_description, public_item_summary, current_status, estimated_delivery_date,
-          internal_notes, version, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Registered', ?, ?, 1, ?, ?)`)
+          internal_notes, version, created_at, updated_at, last_status_event_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Registered', ?, ?, 1, ?, ?, ?)`)
           .bind(id, trackingNumber, values.senderName, values.senderPhone, values.receiverName,
             values.receiverPhone, values.originAddress, values.originPublic, values.destinationAddress,
             values.destinationPublic, values.itemDescription, values.publicItemSummary,
-            values.estimatedDeliveryDate, values.internalNotes, now, now),
+            values.estimatedDeliveryDate, values.internalNotes, now, now, historyId),
         db.prepare(`INSERT INTO shipment_status_history (
           id, shipment_id, status, public_location, public_note, internal_note,
           occurred_at, created_at, created_by_subject, created_by_email
@@ -271,29 +273,36 @@ export async function updateShipmentStatus(db, trackingNumber, input, actor, opt
   const newVersion = expectedVersion + 1;
   const historyId = crypto.randomUUID();
   const auditId = crypto.randomUUID();
+  const assignmentGuard = options.requiredAssignedStaffId
+    ? ' AND assigned_staff_id = ? AND last_assignment_event_id = ? AND assignment_acknowledged_at IS NOT NULL'
+    : '';
+  const assignmentBindings = options.requiredAssignedStaffId
+    ? [options.requiredAssignedStaffId, options.requiredAssignmentEventId]
+    : [];
 
   const results = await db.batch([
     db.prepare(`UPDATE shipments SET current_status = ?,
       estimated_delivery_date = COALESCE(?, estimated_delivery_date),
-      updated_at = ?, version = version + 1
-      WHERE id = ? AND version = ? AND current_status = ?`)
-      .bind(status, estimatedDeliveryDate, now, shipment.id, expectedVersion, shipment.currentStatus),
+      updated_at = ?, version = version + 1, last_status_event_id = ?
+      WHERE id = ? AND version = ? AND current_status = ?${assignmentGuard}`)
+      .bind(status, estimatedDeliveryDate, now, historyId, shipment.id, expectedVersion,
+        shipment.currentStatus, ...assignmentBindings),
     db.prepare(`INSERT INTO shipment_status_history (
       id, shipment_id, status, public_location, public_note, internal_note,
       occurred_at, created_at, created_by_subject, created_by_email
     ) SELECT ?, id, ?, ?, ?, ?, ?, ?, ?, ? FROM shipments
-      WHERE id = ? AND version = ? AND current_status = ?`)
+      WHERE id = ? AND version = ? AND current_status = ? AND last_status_event_id = ?`)
       .bind(historyId, status, publicLocation, publicNote, internalNote, occurredAt, now,
-        identity.subject, identity.email, shipment.id, newVersion, status),
+        identity.subject, identity.email, shipment.id, newVersion, status, historyId),
     db.prepare(`INSERT INTO administrative_audit_records (
       id, actor_subject, actor_email, actor_staff_id, actor_role, action,
       resource_type, resource_id, request_id, details_json, created_at
     ) SELECT ?, ?, ?, ?, ?, 'shipment.status_updated', 'shipment', id, ?, ?, ? FROM shipments
-      WHERE id = ? AND version = ? AND current_status = ?`)
+      WHERE id = ? AND version = ? AND current_status = ? AND last_status_event_id = ?`)
       .bind(auditId, identity.subject, identity.email, identity.staffId, identity.role,
         options.requestId || null,
         JSON.stringify({from: shipment.currentStatus, to: status, version: newVersion}), now,
-        shipment.id, newVersion, status),
+        shipment.id, newVersion, status, historyId),
   ]);
   if (Number(results[0]?.meta?.changes || 0) !== 1 || Number(results[1]?.meta?.changes || 0) !== 1) {
     throw new HttpError(409, 'The shipment was updated by another request.');

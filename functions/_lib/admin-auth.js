@@ -68,10 +68,10 @@ function audienceMatches(actual, expected) {
   return Array.isArray(actual) ? actual.includes(expected) : actual === expected;
 }
 
-export async function verifyAdminRequest(request, env) {
+export async function verifyAccessRequest(request, env, audienceVariable) {
   allowedAdminHost(request, env);
   const issuer = teamDomain(env.CF_ACCESS_TEAM_DOMAIN);
-  const expectedAudience = String(env.CF_ACCESS_AUD || '').trim();
+  const expectedAudience = String(env[audienceVariable] || '').trim();
   if (!expectedAudience) throw new HttpError(503, 'Administrative authentication is not configured.');
 
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
@@ -115,6 +115,15 @@ export async function verifyAdminRequest(request, env) {
     subject: payload.sub,
     email: typeof payload.email === 'string' ? payload.email : null,
   };
+}
+
+export function verifyAdminRequest(request, env) {
+  const configured = env.CF_ACCESS_ADMIN_AUD || env.CF_ACCESS_AUD;
+  return verifyAccessRequest(request, {...env, CF_ACCESS_EFFECTIVE_ADMIN_AUD: configured}, 'CF_ACCESS_EFFECTIVE_ADMIN_AUD');
+}
+
+export function verifyStaffRequest(request, env) {
+  return verifyAccessRequest(request, env, 'CF_ACCESS_STAFF_AUD');
 }
 
 export function requireAdminSameOrigin(request) {

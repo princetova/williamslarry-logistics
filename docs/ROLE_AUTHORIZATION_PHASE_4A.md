@@ -1,5 +1,7 @@
 # WilliamsLarry Phase 4A: role-based authorization
 
+> Phase 4B supersedes the Field Staff portions of this contract: Field Staff now use `/staff` and `/api/staff/*`, while `/admin` and `/api/admin/*` are restricted to Owner and Receptionist roles.
+
 Phase 4A keeps Cloudflare Access as the identity provider and D1 as the authorization source of truth. Access proves who the person is; the `staff_accounts` row determines whether that identity is active and what it may do. The immutable Access `sub` claim is the account key. Email addresses are descriptive and are never used as authorization keys.
 
 Every `/admin` and `/api/admin/*` request must pass, in order:

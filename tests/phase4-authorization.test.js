@@ -18,6 +18,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const migrations = [
   resolve(here, '../migrations/0001_create_shipment_tracking.sql'),
   resolve(here, '../migrations/0002_add_staff_authorization.sql'),
+  resolve(here, '../migrations/0003_add_dispatch_workflow.sql'),
 ];
 const now = '2026-11-20T00:00:00.000Z';
 const shipmentInput = {

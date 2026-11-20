@@ -1,5 +1,5 @@
 import {verifyAdminRequest} from './admin-auth.js';
-import {resolveStaffIdentity} from './authorization.js';
+import {requireRole, resolveStaffIdentity} from './authorization.js';
 import {responseForError} from './http.js';
 import {requireShipmentsDatabase} from './shipments.js';
 
@@ -38,6 +38,7 @@ export async function protectAdminShell(context) {
     context.data.staff = await resolveStaffIdentity(
       requireShipmentsDatabase(context.env), context.data.admin,
     );
+    requireRole(context.data.staff, ['Owner', 'Receptionist']);
     if (!['GET', 'HEAD'].includes(context.request.method.toUpperCase())) {
       return secureAdminResponse(new Response(null, {status: 405, headers: {Allow: 'GET, HEAD'}}));
     }

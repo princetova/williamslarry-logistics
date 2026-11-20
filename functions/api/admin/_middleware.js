@@ -1,5 +1,5 @@
 import {requireAdminSameOrigin, verifyAdminRequest} from '../../_lib/admin-auth.js';
-import {resolveStaffIdentity} from '../../_lib/authorization.js';
+import {requireRole, resolveStaffIdentity} from '../../_lib/authorization.js';
 import {responseForError} from '../../_lib/http.js';
 import {requireShipmentsDatabase} from '../../_lib/shipments.js';
 
@@ -10,6 +10,7 @@ export async function onRequest(context) {
     context.data.staff = await resolveStaffIdentity(
       requireShipmentsDatabase(context.env), context.data.admin,
     );
+    requireRole(context.data.staff, ['Owner', 'Receptionist']);
     return await context.next();
   } catch (caught) {
     return responseForError(caught, 'Administrative authentication');

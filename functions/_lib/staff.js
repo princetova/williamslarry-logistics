@@ -212,26 +212,27 @@ export async function assignShipment(db, trackingNumber, input, actor, options =
   const assignmentId = crypto.randomUUID();
   const auditId = crypto.randomUUID();
   const results = await db.batch([
-    db.prepare(`UPDATE shipments SET assigned_staff_id = ?, updated_at = ?, version = version + 1
+    db.prepare(`UPDATE shipments SET assigned_staff_id = ?, updated_at = ?, version = version + 1,
+      assignment_sequence = assignment_sequence + 1, last_assignment_event_id = ?,
+      assignment_acknowledged_at = NULL, assignment_acknowledged_by_staff_id = NULL,
+      last_acknowledgement_event_id = NULL
       WHERE id = ? AND version = ?`)
-      .bind(staffId, now, shipment.id, expectedVersion),
+      .bind(staffId, now, assignmentId, shipment.id, expectedVersion),
     db.prepare(`INSERT INTO shipment_assignment_history (
       id, shipment_id, previous_staff_id, assigned_staff_id, assigned_at,
       assigned_by_staff_id, assigned_by_subject, note
     ) SELECT ?, id, ?, ?, ?, ?, ?, ? FROM shipments
-      WHERE id = ? AND version = ?
-      AND (assigned_staff_id = ? OR (assigned_staff_id IS NULL AND ? IS NULL))`)
+      WHERE id = ? AND version = ? AND last_assignment_event_id = ?`)
       .bind(assignmentId, currentId, staffId, now, identity.id, identity.subject, note,
-        shipment.id, newVersion, staffId, staffId),
+        shipment.id, newVersion, assignmentId),
     db.prepare(`INSERT INTO administrative_audit_records (
       id, actor_subject, actor_email, actor_staff_id, actor_role, action,
       resource_type, resource_id, request_id, details_json, created_at
     ) SELECT ?, ?, ?, ?, ?, 'shipment.assignment_updated', 'shipment', id, ?, ?, ?
-      FROM shipments WHERE id = ? AND version = ?
-      AND (assigned_staff_id = ? OR (assigned_staff_id IS NULL AND ? IS NULL))`)
+      FROM shipments WHERE id = ? AND version = ? AND last_assignment_event_id = ?`)
       .bind(auditId, identity.subject, identity.email, identity.id, identity.role,
         options.requestId || null, JSON.stringify({previousStaffId: currentId, assignedStaffId: staffId}),
-        now, shipment.id, newVersion, staffId, staffId),
+        now, shipment.id, newVersion, assignmentId),
   ]);
   if (results.some(result => Number(result?.meta?.changes || 0) !== 1)) {
     throw new HttpError(409, 'The shipment was updated by another request.');

@@ -6,7 +6,7 @@
     "dev": "wrangler pages dev public --kv=ENQUIRY_KV",
     "deploy": "wrangler pages deploy public --project-name williamslarry-logistics",
     "test": "node --test tests/*.test.js",
-    "test:shipments": "node --test tests/admin-auth.test.js tests/admin-dashboard.test.js tests/shipments.test.js tests/phase4-authorization.test.js tests/phase4-api.test.js",
+    "test:shipments": "node --test tests/admin-auth.test.js tests/admin-dashboard.test.js tests/shipments.test.js tests/phase4-authorization.test.js tests/phase4-api.test.js tests/phase4b-auth.test.js tests/phase4b-dispatch.test.js tests/phase4b-api.test.js",
     "d1:migrate:local": "npx --yes wrangler@latest d1 migrations apply wll-shipments --local --config wrangler.local.jsonc"
   }
 }

@@ -56,6 +56,12 @@ export function requirePermission(staff, permission) {
   }
 }
 
+export function requireRole(staff, allowedRoles) {
+  if (!Array.isArray(allowedRoles) || !allowedRoles.includes(staff?.role)) {
+    throw new HttpError(403, 'This staff role cannot access this portal.');
+  }
+}
+
 export function shipmentScope(staff) {
   if (hasPermission(staff, 'shipments.read.all')) return {kind: 'all'};
   if (hasPermission(staff, 'shipments.read.assigned')) return {kind: 'assigned', staffId: staff.id};
