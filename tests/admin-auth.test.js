@@ -159,7 +159,12 @@ test('protects the admin shell, normalized paths and dashboard assets with Acces
   const fixture = await signingFixture();
   globalThis.fetch = async () => new Response(JSON.stringify({keys: [fixture.publicJwk]}));
   try {
-    const paths = ['/admin', '/admin/', '/admin/index', '/admin/index.html', '/admin/admin.js', '/admin/admin.css'];
+    const paths = [
+      '/admin', '/admin/', '/admin/index', '/admin/index.html',
+      '/admin/admin.js', '/admin/admin.css',
+      '/admin/admin-liquid-glass.css', '/admin/admin-motion.js',
+      '/admin/admin-experience.css', '/admin/admin-experience.js',
+    ];
     for (const path of paths) {
       const handler = path === '/admin' ? adminRootHandler : adminShellMiddleware;
       const denied = context({url: `https://williamslarrylogistics.com${path}`});
