@@ -75,6 +75,13 @@
     const message = result.querySelector('p');
     const submitButton = form.querySelector('[type="submit"]');
     if (!result || !preview || !copyButton || !message || !submitButton) return;
+    // Cancel a previous success timer before any new request. A rapid failed
+    // resubmission must never be followed by an earlier WhatsApp redirect.
+    try {
+      window.WLLWhatsAppFollowup?.cancelPending?.(result);
+    } catch {
+      console.warn('Optional WhatsApp follow-up reset unavailable');
+    }
     const initialHtml = submitButton.innerHTML;
     result.hidden = false;
     preview.textContent = preparedText;
@@ -103,13 +110,22 @@
       if (!response.ok || !payload || payload.ok !== true) {
         throw new Error(payload?.message || 'Your enquiry could not be submitted. Please try again or contact us on WhatsApp.');
       }
-      // Success requires a real reference and at least one provider acceptance.
-      // This also protects users against stale endpoints returning generic OK.
+      // Email is the authoritative notification channel. The retired paid
+      // WhatsApp provider must never turn an email failure into false success.
       if (typeof payload.reference !== 'string' || !/^WL-[A-F0-9]{10}$/.test(payload.reference) ||
-          (payload.channels?.email !== 'accepted' && payload.channels?.whatsapp !== 'accepted')) {
+          payload.channels?.email !== 'accepted') {
         throw new Error('Notification delivery could not be confirmed. Please contact us directly or copy your enquiry details.');
       }
       message.textContent = `${payload.message || 'Your enquiry was accepted for notification delivery.'} Reference: ${payload.reference}`;
+      if (payload.channels?.email === 'accepted') {
+        try {
+          window.WLLWhatsAppFollowup?.onEmailAccepted({payload, formData: data, source, result});
+        } catch {
+          // Email acceptance is already confirmed. Keep the enquiry successful
+          // even if the optional customer-side WhatsApp handoff is unavailable.
+          console.warn('Optional WhatsApp follow-up unavailable');
+        }
+      }
     } catch (error) {
       message.classList.remove('result-success');
       message.classList.add('result-error');

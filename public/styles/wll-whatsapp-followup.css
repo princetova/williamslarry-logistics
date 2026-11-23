@@ -1,0 +1,24 @@
+/* Uses the public site's established blue/black/yellow identity. */
+.wll-wa-followup-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 0.75rem;
+  padding: 0.7rem 1.1rem;
+  color: #fff;
+  background: #007bff;
+  border: 1px solid #007bff;
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+.wll-wa-followup-link:hover { background: #005fcc; transform: translateY(-1px); }
+.wll-wa-followup-link:focus-visible { outline: 3px solid #ffea00; outline-offset: 3px; }
+.wll-wa-followup-link[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .wll-wa-followup-link { transition: none; }
+  .wll-wa-followup-link:hover { transform: none; }
+}
