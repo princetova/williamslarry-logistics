@@ -42,7 +42,7 @@
     // Never creates values, locations, shipments or forecasts.
     const distribution = document.getElementById('distribution');
     const composition = document.getElementById('status-composition');
-    const colors = ['#3a978a','#64c6a8','#1e8f9b','#6aafae','#8fd6b9','#d3c37f','#e8ac7e','#abb6b2','#779892'];
+    const colors = ['#007BFF','#74B9FF','#005EC7','#A4C9F0','#375B80','#C6A900','#D17A36','#64748B','#B4C2D1'];
     if(distribution && composition) {
       const draw = () => {
         const rows = Array.from(distribution.querySelectorAll('.bar-row'));
@@ -117,24 +117,7 @@
       new MutationObserver(changed).observe(deliveredEl,{childList:true,characterData:true,subtree:true});
       refresh();
     }
-    // No result figures are faked. The decorative hero moves softly with the pointer.
-    const hero=app.querySelector('.welcome-banner');
-    if(hero) {
-      let raf=0;
-      hero.addEventListener('pointermove',e => {
-        if (!isMotionOn() || e.pointerType==='touch') return;
-        const x=e.clientX,y=e.clientY;
-        cancelAnimationFrame(raf);
-        raf=requestAnimationFrame(() => {
-          const box=hero.getBoundingClientRect();
-          hero.style.setProperty('--glint-x',`${((x-box.left)/box.width*100).toFixed(1)}%`);
-          hero.style.setProperty('--glint-y',`${((y-box.top)/box.height*100).toFixed(1)}%`);
-        });
-      },{passive:true});
-      hero.addEventListener('pointerleave',() => {
-        hero.style.removeProperty('--glint-x');hero.style.removeProperty('--glint-y');
-      });
-    }
+    // The experience uses no pointer-following reflections or visual-only effects.
     const motionToggle=document.getElementById('motion-toggle');
     motionToggle?.addEventListener('click',() => requestAnimationFrame(() => positionNav(true)));
     reduced.addEventListener?.('change',() => positionNav(true));
